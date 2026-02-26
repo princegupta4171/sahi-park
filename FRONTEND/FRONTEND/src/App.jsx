@@ -1,0 +1,1265 @@
+import { useState, useEffect } from 'react';
+import './App.css';
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [showRegister, setShowRegister] = useState(false);
+  const [spaces, setSpaces] = useState([]);
+  const [formData, setFormData] = useState({ username: '', password: '', userType: 'renter' });
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginType, setLoginType] = useState('');
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [allParkingSpaces, setAllParkingSpaces] = useState([]);
+  const [showMap, setShowMap] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [nearbySpaces, setNearbySpaces] = useState([]);
+  const [selectedMapLocation, setSelectedMapLocation] = useState(null);
+  const [drawingMode, setDrawingMode] = useState(false);
+  const [parkingArea, setParkingArea] = useState(null);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactInfo, setContactInfo] = useState({ mobile: '', email: '', address: '' });
+  const [markerPosition, setMarkerPosition] = useState({ x: 250, y: 250 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [parkingRect, setParkingRect] = useState({ x: 300, y: 200, width: 200, height: 100 });
+  const [resizing, setResizing] = useState(null);
+  const [moving, setMoving] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [pricePerHour, setPricePerHour] = useState(50);
+  const [showPayment, setShowPayment] = useState(false);
+  const [selectedSpace, setSelectedSpace] = useState(null);
+  const [bookingDuration, setBookingDuration] = useState(1);
+  const [searchLocation, setSearchLocation] = useState({ lat: '', lng: '' });
+  const [googleMapsLink, setGoogleMapsLink] = useState('');
+  const [locationInputMethod, setLocationInputMethod] = useState('current');
+  const [showSubmitButton, setShowSubmitButton] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [tempLocation, setTempLocation] = useState(null);
+  const [showProviderForm, setShowProviderForm] = useState(false);
+  const [providerFormData, setProviderFormData] = useState({
+    parkingName: '',
+    address: '',
+    mobile: '',
+    email: '',
+    pricePerHour: 50,
+    totalSpaces: 1,
+    description: ''
+  });
+  const [showAbout, setShowAbout] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+
+  useEffect(() => {
+    if (showMap && user?.userType === 'provider') {
+      console.log('Provider map opened, initializing canvas...');
+      setTimeout(() => {
+        const canvas = document.getElementById('drawingCanvas');
+        console.log('Canvas element:', canvas);
+        if (canvas) {
+          const parent = canvas.parentElement;
+          console.log('Parent element:', parent);
+          canvas.width = parent.offsetWidth;
+          canvas.height = parent.offsetHeight;
+          canvas.style.display = 'block';
+          console.log('Canvas size:', canvas.width, canvas.height);
+          drawRectangle();
+        } else {
+          console.log('Canvas not found!');
+        }
+      }, 100);
+    }
+  }, [showMap, user, parkingRect]);
+
+  const drawRectangle = () => {
+    const canvas = document.getElementById('drawingCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#4CAF50';
+    ctx.lineWidth = 3;
+    ctx.fillStyle = 'rgba(76, 175, 80, 0.2)';
+    ctx.fillRect(parkingRect.x, parkingRect.y, parkingRect.width, parkingRect.height);
+    ctx.strokeRect(parkingRect.x, parkingRect.y, parkingRect.width, parkingRect.height);
+    
+    // Draw resize handles
+    ctx.fillStyle = '#4CAF50';
+    const handleSize = 10;
+    // Corners
+    ctx.fillRect(parkingRect.x - handleSize/2, parkingRect.y - handleSize/2, handleSize, handleSize);
+    ctx.fillRect(parkingRect.x + parkingRect.width - handleSize/2, parkingRect.y - handleSize/2, handleSize, handleSize);
+    ctx.fillRect(parkingRect.x - handleSize/2, parkingRect.y + parkingRect.height - handleSize/2, handleSize, handleSize);
+    ctx.fillRect(parkingRect.x + parkingRect.width - handleSize/2, parkingRect.y + parkingRect.height - handleSize/2, handleSize, handleSize);
+  };
+
+  const loadSpaces = async () => {
+    const res = await fetch('http://localhost:3000/spaces');
+    const data = await res.json();
+    setSpaces(data);
+  };
+
+  const loadUsers = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/users');
+      const data = await res.json();
+      console.log('Users loaded:', data);
+      setAllUsers(data);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      alert('Failed to load users. Check if backend is running.');
+    }
+  };
+
+  const loadAllParkingSpaces = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/spaces');
+      const data = await res.json();
+      console.log('Parking spaces loaded:', data);
+      setAllParkingSpaces(data);
+    } catch (error) {
+      console.error('Error loading parking spaces:', error);
+      alert('Failed to load parking spaces. Check if backend is running.');
+    }
+  };
+
+  const handleAdminLogin = () => {
+    if (adminPassword === 'admin123') {
+      setIsAdminAuthenticated(true);
+      loadUsers();
+      loadAllParkingSpaces();
+    } else {
+      alert('Invalid admin password');
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadSpaces();
+      getUserLocation();
+    }
+  }, [user]);
+
+  const getUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('Location error:', error);
+          alert('Location access denied. Please enable location in browser settings.');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by your browser');
+    }
+  };
+
+  const findNearbySpaces = async (lat, lng) => {
+    const res = await fetch(`http://localhost:3000/nearby-spaces?lat=${lat}&lng=${lng}`);
+    const data = await res.json();
+    setNearbySpaces(data);
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const res = await fetch('http://localhost:3000/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: formData.username, password: formData.password })
+    });
+    const data = await res.json();
+    console.log('Login response:', data);
+    if (data.success) {
+      console.log('Setting user with userType:', data.userType);
+      const userData = { ...data, userType: data.userType || loginType };
+      setUser(userData);
+      setFormData({ username: '', password: '', userType: 'renter' });
+      setShowLogin(false);
+    } else {
+      alert(data.message);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    const registerData = { ...formData, userType: loginType };
+    console.log('Registering with data:', registerData);
+    const res = await fetch('http://localhost:3000/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(registerData)
+    });
+    const data = await res.json();
+    console.log('Register response:', data);
+    if (data.success) {
+      alert('Registration successful! Please login.');
+      setShowRegister(false);
+      setFormData({ username: '', password: '', userType: loginType });
+    } else {
+      alert(data.message);
+    }
+  };
+
+  const extractCoordsFromGoogleLink = (link) => {
+    try {
+      // Check if it's a shortened link (goo.gl or maps.app.goo.gl)
+      if (link.includes('goo.gl')) {
+        alert('⚠️ Shortened link detected!\n\nPlease follow these steps:\n1. Open this link in Google Maps\n2. Right-click on the red marker\n3. Click the coordinates to copy them\n4. Use "Enter Coordinates" option to paste them');
+        return null;
+      }
+      
+      let match = link.match(/[?&]q=([+-]?\d+\.?\d*),([+-]?\d+\.?\d*)/);
+      if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+      match = link.match(/@([+-]?\d+\.?\d*),([+-]?\d+\.?\d*)/);
+      if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+      match = link.match(/\/place\/[^/]+\/@([+-]?\d+\.?\d*),([+-]?\d+\.?\d*)/);
+      if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+      
+      // Try to extract from URL parameters
+      match = link.match(/!3d([+-]?\d+\.?\d*)!4d([+-]?\d+\.?\d*)/);
+      if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+      
+      return null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const handleFindSpace = () => {
+    console.log('handleFindSpace called, user type:', user?.userType);
+    if (user?.userType === 'provider') {
+      console.log('Opening provider form');
+      setShowProviderForm(true);
+    } else {
+      console.log('Opening location picker for renter');
+      setShowLocationPicker(true);
+    }
+  };
+
+  const submitProviderForm = () => {
+    if (!providerFormData.parkingName || !providerFormData.address || !providerFormData.mobile) {
+      alert('Please fill all required fields');
+      return;
+    }
+    setShowProviderForm(false);
+    setShowLocationPicker(true);
+  };
+
+  const confirmLocation = async () => {
+    if (!tempLocation) {
+      alert('Please select a location');
+      return;
+    }
+    
+    console.log('Confirming location for user type:', user?.userType);
+    console.log('Full user object:', user);
+    setUserLocation(tempLocation);
+    
+    if (!user || user.userType === 'renter') {
+      console.log('Renter flow - finding nearby spaces');
+      await findNearbySpaces(tempLocation.lat, tempLocation.lng);
+      setShowLocationPicker(false);
+      setShowMap(true);
+    } else if (user.userType === 'provider') {
+      console.log('Provider flow - submitting parking space');
+      try {
+        const res = await fetch('http://localhost:3000/provide', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            providerId: user.userId, 
+            providerName: user.username,
+            latitude: tempLocation.lat,
+            longitude: tempLocation.lng,
+            mobile: providerFormData.mobile,
+            email: providerFormData.email,
+            address: providerFormData.address,
+            pricePerHour: parseFloat(providerFormData.pricePerHour),
+            parkingName: providerFormData.parkingName,
+            totalSpaces: providerFormData.totalSpaces,
+            description: providerFormData.description
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Parking space added successfully!');
+          setShowLocationPicker(false);
+          setProviderFormData({
+            parkingName: '',
+            address: '',
+            mobile: '',
+            email: '',
+            pricePerHour: 50,
+            totalSpaces: 1,
+            description: ''
+          });
+          setTempLocation(null);
+          loadSpaces();
+        } else {
+          alert(data.message || 'Failed to add parking space');
+        }
+      } catch (error) {
+        console.error('Error submitting parking space:', error);
+        alert('Failed to submit parking space. Please try again.');
+      }
+    }
+  };
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const loc = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setTempLocation(loc);
+        },
+        (error) => {
+          alert('Please enable location access in browser settings');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
+  };
+
+  const handleManualLocation = () => {
+    if (searchLocation.lat && searchLocation.lng) {
+      setTempLocation({ lat: parseFloat(searchLocation.lat), lng: parseFloat(searchLocation.lng) });
+    } else {
+      alert('Please enter valid coordinates');
+    }
+  };
+
+  const handleGoogleLink = () => {
+    const coords = extractCoordsFromGoogleLink(googleMapsLink);
+    if (coords) {
+      setTempLocation(coords);
+    } else {
+      alert('Invalid Google Maps link');
+    }
+  };
+
+  const handleProvideSpace = async () => {
+    await submitProvideSpace();
+  };
+
+  const submitProvideSpace = async () => {
+    if (!pricePerHour || pricePerHour < 10) {
+      alert('Please enter valid price (minimum ₹10/hour)');
+      return;
+    }
+    const res = await fetch('http://localhost:3000/provide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        providerId: user.userId, 
+        providerName: user.username,
+        latitude: userLocation.lat,
+        longitude: userLocation.lng,
+        parkingArea: parkingRect,
+        mobile: user.mobile,
+        email: user.email,
+        address: user.address,
+        pricePerHour: parseFloat(pricePerHour)
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      loadSpaces();
+      setShowMap(false);
+      setSelectedMapLocation(null);
+      setParkingRect({ x: 300, y: 200, width: 200, height: 100 });
+      setShowContactForm(false);
+      setPricePerHour(50);
+      alert('Parking space provided successfully!');
+    } else {
+      alert(data.message);
+    }
+  };
+
+  const handleBookSpace = async (space) => {
+    setSelectedSpace(space);
+    setShowPayment(true);
+  };
+
+  const handlePayment = async () => {
+    const totalAmount = selectedSpace.pricePerHour * bookingDuration;
+    const res = await fetch('http://localhost:3000/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        spaceId: selectedSpace._id, 
+        renterId: user.userId, 
+        renterName: user.username,
+        duration: bookingDuration,
+        totalAmount
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      const payRes = await fetch('http://localhost:3000/payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spaceId: selectedSpace._id })
+      });
+      const payData = await payRes.json();
+      if (payData.success) {
+        loadSpaces();
+        setShowMap(false);
+        setShowPayment(false);
+        setSelectedSpace(null);
+        setBookingDuration(1);
+        alert(`Payment successful! ₹${totalAmount} paid for ${bookingDuration} hour(s)`);
+      }
+    } else {
+      alert(data.message);
+    }
+  };
+
+  return (
+    <div className="app">
+      <div className="hero-section">
+        <header className="app-header">
+          <div className="header-content">
+            <h1>🅿️ Sahi Park</h1>
+            <nav className="nav-buttons">
+              <button onClick={() => {}}>Home</button>
+              <button onClick={() => setShowAbout(true)}>About Us</button>
+              <button onClick={() => {}}>Find Your Space</button>
+              <button onClick={() => setShowContact(true)}>Contact Us</button>
+              {!user && (
+                <>
+                  <button className="login-btn renter" onClick={() => { setShowLogin(true); setLoginType('renter'); }}>Login as Renter</button>
+                  <button className="login-btn provider" onClick={() => { setShowLogin(true); setLoginType('provider'); }}>Login as Provider</button>
+                </>
+              )}
+              {user && <button className="logout-btn" onClick={() => { setUser(null); setSpaces([]); setShowLogin(false); }}>Logout</button>}
+              <button className="admin-btn" onClick={() => { setShowAdmin(!showAdmin); setIsAdminAuthenticated(false); setAdminPassword(''); }}>Admin Panel</button>
+            </nav>
+          </div>
+        </header>
+        {!user && (
+          <div className="hero-content">
+            <div className="hero-text">
+              <h2 className="hero-title">Find Your Perfect Parking Space</h2>
+              <p className="hero-subtitle">Smart, Easy, Convenient</p>
+            </div>
+            <div className="hero-images">
+              <img src="/1.jpeg" alt="Parking" className="hero-img img-1" />
+              <img src="/2.jpeg" alt="Parking" className="hero-img img-2" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {!user && (
+        <div className="info-section">
+          <div className="info-container">
+            <img src="/safe and secure.jpg" alt="Safe Parking" className="info-image" />
+            <div className="info-text">
+              <h3>Explore</h3>
+              <h2>Nearby Parking Spots</h2>
+              <p className="info-subtitle">Need of parking?</p>
+              <p>Our app can help you</p>
+              <p>Discover parking spaces location near you.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!user && (
+        <div className="features-section">
+          <img src="https://images.pexels.com/photos/395537/pexels-photo-395537.jpeg?cs=srgb" alt="Parking Lot" className="features-bg" />
+          <div className="features-overlay">
+            <h2>Why Choose Sahi Park?</h2>
+            <div className="features-grid">
+              <div className="feature-card">
+                <div className="feature-icon">🚗</div>
+                <h3>Easy Booking</h3>
+                <p>Find and book parking spaces in seconds</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">💰</div>
+                <h3>Best Prices</h3>
+                <p>Competitive rates for all parking locations</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">📍</div>
+                <h3>Prime Locations</h3>
+                <p>Parking spaces near you, always available</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">🔒</div>
+                <h3>Secure & Safe</h3>
+                <p>Your vehicle is in trusted hands</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {showContact && (
+        <div className="contact-modal">
+          <div className="contact-content">
+            <button className="close-contact" onClick={() => setShowContact(false)}>✕</button>
+            <h2>Contact Us</h2>
+            <div className="contact-info-grid">
+              <div className="contact-card">
+                <div className="contact-icon">👤</div>
+                <h3>Founder</h3>
+                <p className="contact-name">Prince Gupta</p>
+              </div>
+              <div className="contact-card">
+                <div className="contact-icon">👤</div>
+                <h3>Co-Founder</h3>
+                <p className="contact-name">Satya Dubey</p>
+              </div>
+              <div className="contact-card">
+                <div className="contact-icon">💼</div>
+                <h3>Manager</h3>
+                <p className="contact-name">Sachin Chauhan</p>
+              </div>
+              <div className="contact-card highlight">
+                <div className="contact-icon">📞</div>
+                <h3>Customer Helpline</h3>
+                <p className="contact-name">Pritsh Mall</p>
+                <a href="tel:8853308557" className="contact-phone">📱 8853308557</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAbout && (
+        <div className="about-modal">
+          <div className="about-content">
+            <button className="close-about" onClick={() => setShowAbout(false)}>✕</button>
+            <h2>About Sahi Park</h2>
+            <div className="about-text">
+              <p>Welcome to <strong>Sahi Park</strong> - Your trusted parking solution!</p>
+              <p>We connect parking space providers with people looking for convenient parking spots. Our platform makes it easy to find, book, and manage parking spaces in your area.</p>
+              <h3>Our Mission</h3>
+              <p>To revolutionize urban parking by creating a seamless connection between parking space owners and drivers, making parking hassle-free for everyone.</p>
+              <h3>How It Works</h3>
+              <ul>
+                <li><strong>For Renters:</strong> Search nearby parking spaces, view prices, and book instantly</li>
+                <li><strong>For Providers:</strong> List your parking space, set your price, and earn money</li>
+              </ul>
+              <h3>Why Choose Us?</h3>
+              <ul>
+                <li>🚗 Real-time availability</li>
+                <li>💰 Competitive pricing</li>
+                <li>📍 Location-based search</li>
+                <li>🔒 Secure transactions</li>
+                <li>⭐ Verified parking spaces</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAdmin && (
+        <div className="admin-panel">
+          <div className="admin-content">
+            {!isAdminAuthenticated ? (
+              <div className="admin-login">
+                <h2>🔒 Admin Login</h2>
+                <input
+                  type="password"
+                  placeholder="Enter Admin Password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
+                />
+                <div className="admin-login-actions">
+                  <button onClick={handleAdminLogin}>Login</button>
+                  <button onClick={() => setShowAdmin(false)}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="admin-header">
+                  <h2>Admin Panel - Management Dashboard</h2>
+                  <button onClick={() => { setShowAdmin(false); setIsAdminAuthenticated(false); }}>Close</button>
+                </div>
+                
+                <div className="admin-tabs">
+                  <div className="users-table">
+                    <h3>👥 All Registered Users ({allUsers.length})</h3>
+                    {allUsers.length === 0 ? (
+                      <p style={{textAlign: 'center', padding: '20px', color: '#666'}}>No users registered yet</p>
+                    ) : (
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Mobile</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>User Type</th>
+                            <th>Created At</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allUsers.map((u) => (
+                            <tr key={u._id}>
+                              <td>{u._id}</td>
+                              <td>{u.username}</td>
+                              <td>{u.mobile}</td>
+                              <td>{u.email}</td>
+                              <td>{u.address}</td>
+                              <td><span className={`badge ${u.userType}`}>{u.userType}</span></td>
+                              <td>{new Date(u.createdAt).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+
+                  <div className="parking-spaces-table">
+                    <h3>🏛️ All Parking Spaces ({allParkingSpaces.filter(s => s.providerId).length})</h3>
+                    {allParkingSpaces.filter(s => s.providerId).length === 0 ? (
+                      <p style={{textAlign: 'center', padding: '20px', color: '#666'}}>No parking spaces added yet</p>
+                    ) : (
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Space ID</th>
+                            <th>Parking Name</th>
+                            <th>Provider</th>
+                            <th>Address</th>
+                            <th>Mobile</th>
+                            <th>Price/Hour</th>
+                            <th>Total Spaces</th>
+                            <th>Status</th>
+                            <th>Location</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allParkingSpaces.filter(s => s.providerId).map((space) => (
+                            <tr key={space._id}>
+                              <td>{space._id}</td>
+                              <td>{space.parkingName || 'N/A'}</td>
+                              <td>{space.providerName}</td>
+                              <td>{space.address}</td>
+                              <td>{space.mobile}</td>
+                              <td>₹{space.pricePerHour}</td>
+                              <td>{space.totalSpaces || 1}</td>
+                              <td><span className={`badge ${space.isAvailable ? 'available' : 'occupied'}`}>{space.isAvailable ? 'Available' : 'Occupied'}</span></td>
+                              <td>{space.latitude?.toFixed(4)}, {space.longitude?.toFixed(4)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showProviderForm && (
+        <div className="provider-form-modal">
+          <div className="provider-form-box">
+            <h3>🏢 Parking Space Details</h3>
+            <p className="form-subtitle">Fill in the details about your parking space</p>
+            
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Parking Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. City Center Parking"
+                  value={providerFormData.parkingName}
+                  onChange={(e) => setProviderFormData({ ...providerFormData, parkingName: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Full Address *</label>
+                <textarea
+                  placeholder="Enter complete address"
+                  value={providerFormData.address}
+                  onChange={(e) => setProviderFormData({ ...providerFormData, address: e.target.value })}
+                  rows="3"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Mobile Number *</label>
+                <input
+                  type="tel"
+                  placeholder="10-digit mobile number"
+                  value={providerFormData.mobile}
+                  onChange={(e) => setProviderFormData({ ...providerFormData, mobile: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={providerFormData.email}
+                  onChange={(e) => setProviderFormData({ ...providerFormData, email: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Price per Hour (₹) *</label>
+                <input
+                  type="number"
+                  min="10"
+                  placeholder="50"
+                  value={providerFormData.pricePerHour}
+                  onChange={(e) => setProviderFormData({ ...providerFormData, pricePerHour: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Total Parking Spaces</label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  value={providerFormData.totalSpaces}
+                  onChange={(e) => setProviderFormData({ ...providerFormData, totalSpaces: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group full-width">
+                <label>Description (Optional)</label>
+                <textarea
+                  placeholder="Any additional information about your parking space"
+                  value={providerFormData.description}
+                  onChange={(e) => setProviderFormData({ ...providerFormData, description: e.target.value })}
+                  rows="3"
+                />
+              </div>
+            </div>
+
+            <div className="form-actions">
+              <button className="submit-form-btn" onClick={submitProviderForm}>
+                Next: Select Location
+              </button>
+              <button className="cancel-form-btn" onClick={() => setShowProviderForm(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLocationPicker && (
+        <div className="location-picker-modal">
+          <div className="location-picker-box">
+            <h3>📍 Select Your Location</h3>
+            <p className="picker-subtitle">Choose how you want to set your location</p>
+            
+            <div className="location-options">
+              <div className="location-option-card" onClick={getCurrentLocation}>
+                <div className="option-icon">📍</div>
+                <h4>Use Current Location</h4>
+                <p>Automatically detect your location</p>
+              </div>
+              
+              <div className="location-option-card">
+                <div className="option-icon">🔗</div>
+                <h4>Paste Google Maps Link</h4>
+                <input
+                  type="text"
+                  placeholder="https://maps.google.com/..."
+                  value={googleMapsLink}
+                  onChange={(e) => setGoogleMapsLink(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <button onClick={(e) => { e.stopPropagation(); handleGoogleLink(); }}>Extract Location</button>
+              </div>
+              
+              <div className="location-option-card">
+                <div className="option-icon">✏️</div>
+                <h4>Enter Coordinates</h4>
+                <div className="coord-inputs">
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="Latitude"
+                    value={searchLocation.lat}
+                    onChange={(e) => setSearchLocation({ ...searchLocation, lat: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="Longitude"
+                    value={searchLocation.lng}
+                    onChange={(e) => setSearchLocation({ ...searchLocation, lng: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+                <button onClick={(e) => { e.stopPropagation(); handleManualLocation(); }}>Set Location</button>
+              </div>
+            </div>
+
+            {tempLocation && (
+              <div className="selected-location">
+                <p>✅ Location Selected</p>
+                <p className="coords">Lat: {tempLocation.lat.toFixed(6)}, Lng: {tempLocation.lng.toFixed(6)}</p>
+              </div>
+            )}
+
+            <div className="picker-actions">
+              <button className="confirm-location-btn" onClick={confirmLocation} disabled={!tempLocation}>
+                Confirm Location
+              </button>
+              <button className="cancel-picker-btn" onClick={() => { setShowLocationPicker(false); setTempLocation(null); }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMap && userLocation && user?.userType === 'renter' && (
+        <div className="map-modal">
+          <div className="map-container">
+            <h3>🔍 Nearby Available Parking Spaces</h3>
+            <div className="map-wrapper">
+              <iframe
+                width="100%"
+                height="400"
+                style={{ border: 0, borderRadius: '10px' }}
+                loading="lazy"
+                allowFullScreen
+                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${userLocation.lat},${userLocation.lng}&zoom=14`}
+              ></iframe>
+            </div>
+            
+            <div className="nearby-list">
+              <h4>🏛️ Available Parking Spaces Near You:</h4>
+              {nearbySpaces.length > 0 ? (
+                nearbySpaces.map((space) => (
+                  <div key={space._id} className="nearby-item">
+                    <div className="space-details">
+                      <h5>{space.parkingName || 'Parking Space'}</h5>
+                      <p><strong>Provider:</strong> {space.providerName}</p>
+                      <p><strong>Address:</strong> {space.address}</p>
+                      <p><strong>Distance:</strong> {space.distance?.toFixed(2)} km away</p>
+                      <p><strong>Price:</strong> ₹{space.pricePerHour}/hour</p>
+                      <p><strong>Contact:</strong> {space.mobile}</p>
+                      {space.description && <p><strong>Info:</strong> {space.description}</p>}
+                    </div>
+                    <button className="book-btn" onClick={() => handleBookSpace(space)}>Book Now</button>
+                  </div>
+                ))
+              ) : (
+                <div className="no-spaces">
+                  <p>😞 No parking spaces available nearby</p>
+                  <p>Try searching in a different location</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="map-actions">
+              <button className="cancel-btn" onClick={() => { setShowMap(false); setNearbySpaces([]); }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMap && userLocation && user?.userType === 'provider' && (
+        <div className="map-modal">
+          <div className="map-container">
+            <h3>{user?.userType === 'provider' ? 'Select Your Parking Location' : 'Nearby Available Parking Spaces'}</h3>
+            <p style={{color: 'red', fontWeight: 'bold'}}>DEBUG: User = {JSON.stringify(user)}</p>
+            {user.userType === 'provider' && (
+              <p className="map-instruction">📍 Draw a rectangle on the map to mark your parking area</p>
+            )}
+            <div className="map-wrapper">
+              <iframe
+                width="100%"
+                height="500"
+                style={{ border: 0, position: 'relative', zIndex: 1 }}
+                loading="lazy"
+                allowFullScreen
+                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${userLocation.lat},${userLocation.lng}&zoom=18`}
+              ></iframe>
+              {user.userType === 'provider' && (
+                <>
+                  <div 
+                    className="map-marker draggable"
+                    style={{ 
+                      left: `${markerPosition.x}px`, 
+                      top: `${markerPosition.y}px`,
+                      position: 'absolute',
+                      fontSize: '48px',
+                      zIndex: 20,
+                      cursor: 'move',
+                      transform: 'translate(-50%, -100%)'
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDragging(true);
+                    }}
+                  >
+                    📍
+                  </div>
+                  <canvas 
+                    id="drawingCanvas" 
+                    className="drawing-canvas"
+                    width="800"
+                    height="500"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      cursor: 'crosshair',
+                      zIndex: 10,
+                      pointerEvents: 'all',
+                      background: 'rgba(100, 200, 255, 0.1)'
+                    }}
+                    onMouseMove={(e) => {
+                      if (isDragging) {
+                        const rect = e.currentTarget.parentElement.getBoundingClientRect();
+                        setMarkerPosition({
+                          x: e.clientX - rect.left,
+                          y: e.clientY - rect.top
+                        });
+                        return;
+                      }
+                      if (moving) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const dx = e.clientX - rect.left - dragStart.x;
+                        const dy = e.clientY - rect.top - dragStart.y;
+                        setParkingRect(prev => ({
+                          ...prev,
+                          x: prev.x + dx,
+                          y: prev.y + dy
+                        }));
+                        setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                        return;
+                      }
+                      if (resizing) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const mouseX = e.clientX - rect.left;
+                        const mouseY = e.clientY - rect.top;
+                        setParkingRect(prev => {
+                          let newRect = { ...prev };
+                          if (resizing === 'se') {
+                            newRect.width = mouseX - prev.x;
+                            newRect.height = mouseY - prev.y;
+                          } else if (resizing === 'sw') {
+                            newRect.width = prev.width + (prev.x - mouseX);
+                            newRect.x = mouseX;
+                            newRect.height = mouseY - prev.y;
+                          } else if (resizing === 'ne') {
+                            newRect.width = mouseX - prev.x;
+                            newRect.height = prev.height + (prev.y - mouseY);
+                            newRect.y = mouseY;
+                          } else if (resizing === 'nw') {
+                            newRect.width = prev.width + (prev.x - mouseX);
+                            newRect.height = prev.height + (prev.y - mouseY);
+                            newRect.x = mouseX;
+                            newRect.y = mouseY;
+                          }
+                          return newRect;
+                        });
+                      }
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const mouseX = e.clientX - rect.left;
+                      const mouseY = e.clientY - rect.top;
+                      
+                      console.log('Canvas clicked at:', mouseX, mouseY);
+                      
+                      // Check if clicking on marker
+                      const markerDist = Math.sqrt(Math.pow(mouseX - markerPosition.x, 2) + Math.pow(mouseY - markerPosition.y, 2));
+                      if (markerDist < 30) {
+                        console.log('Marker clicked');
+                        setIsDragging(true);
+                        return;
+                      }
+                      
+                      const handleSize = 10;
+                      // Check corners for resize
+                      if (Math.abs(mouseX - parkingRect.x) < handleSize && Math.abs(mouseY - parkingRect.y) < handleSize) {
+                        setResizing('nw');
+                      } else if (Math.abs(mouseX - (parkingRect.x + parkingRect.width)) < handleSize && Math.abs(mouseY - parkingRect.y) < handleSize) {
+                        setResizing('ne');
+                      } else if (Math.abs(mouseX - parkingRect.x) < handleSize && Math.abs(mouseY - (parkingRect.y + parkingRect.height)) < handleSize) {
+                        setResizing('sw');
+                      } else if (Math.abs(mouseX - (parkingRect.x + parkingRect.width)) < handleSize && Math.abs(mouseY - (parkingRect.y + parkingRect.height)) < handleSize) {
+                        setResizing('se');
+                      } else if (mouseX > parkingRect.x && mouseX < parkingRect.x + parkingRect.width &&
+                                 mouseY > parkingRect.y && mouseY < parkingRect.y + parkingRect.height) {
+                        // Move rectangle
+                        console.log('Rectangle body clicked');
+                        setMoving(true);
+                        setDragStart({ x: mouseX, y: mouseY });
+                      } else {
+                        // Click anywhere to move marker
+                        console.log('Moving marker to:', mouseX, mouseY);
+                        setMarkerPosition({ x: mouseX, y: mouseY });
+                        setShowSubmitButton(true);
+                      }
+                    }}
+                    onMouseUp={() => {
+                      if (isDragging) {
+                        setIsDragging(false);
+                        return;
+                      }
+                      setResizing(null);
+                      setMoving(false);
+                    }}
+                  />
+                </>
+              )}
+            </div>
+            {user.userType === 'provider' && markerPosition && (
+              <div className="location-info">
+                <p>📍 Marker Position: X: {markerPosition.x.toFixed(0)}, Y: {markerPosition.y.toFixed(0)}</p>
+                <p className="hint">Click anywhere on map to place marker OR drag it</p>
+                <div className="pricing-input">
+                  <label>💰 Price per Hour: ₹</label>
+                  <input
+                    type="number"
+                    min="10"
+                    value={pricePerHour}
+                    onChange={(e) => setPricePerHour(e.target.value)}
+                    placeholder="50"
+                  />
+                </div>
+                {showSubmitButton && (
+                  <button className="submit-location-btn" onClick={handleProvideSpace}>
+                    ✅ Submit Location & Parking Area
+                  </button>
+                )}
+              </div>
+            )}
+            {user.userType === 'provider' && (
+              <div className="area-info">
+                ✅ Adjust the green rectangle to mark your parking area, then click "Confirm"
+              </div>
+            )}
+            {user.userType === 'renter' && (
+              <div className="nearby-list">
+                <h4>Available Spaces Near You:</h4>
+                {nearbySpaces.length > 0 ? (
+                  nearbySpaces.map((space) => (
+                    <div key={space._id} className="nearby-item">
+                      <div>
+                        <p><strong>Provider:</strong> {space.providerName}</p>
+                        <p><strong>Distance:</strong> {space.distance?.toFixed(2)} km</p>
+                        <p><strong>Price:</strong> ₹{space.pricePerHour}/hour</p>
+                        <p><strong>Contact:</strong> {space.mobile}</p>
+                      </div>
+                      <button onClick={() => handleBookSpace(space)}>Book & Pay</button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="no-spaces">No parking spaces available nearby. Try again later!</p>
+                )}
+              </div>
+            )}
+            <div className="map-actions">
+              {user.userType === 'provider' && (
+                <>
+                  <button className="clear-btn" onClick={() => {
+                    setParkingRect({ x: 300, y: 200, width: 200, height: 100 });
+                    setShowSubmitButton(false);
+                  }}>Reset Area</button>
+                </>
+              )}
+              <button className="cancel-btn" onClick={() => { setShowMap(false); setSelectedMapLocation(null); setParkingArea(null); setShowSubmitButton(false); }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPayment && selectedSpace && (
+        <div className="payment-modal">
+          <div className="payment-box">
+            <h3>💳 Payment Details</h3>
+            <div className="payment-info">
+              <p><strong>Provider:</strong> {selectedSpace.providerName}</p>
+              <p><strong>Location:</strong> {selectedSpace.address}</p>
+              <p><strong>Price:</strong> ₹{selectedSpace.pricePerHour}/hour</p>
+              <p><strong>Contact:</strong> {selectedSpace.mobile}</p>
+            </div>
+            <div className="duration-selector">
+              <label>Select Duration (hours):</label>
+              <input
+                type="number"
+                min="1"
+                max="24"
+                value={bookingDuration}
+                onChange={(e) => setBookingDuration(parseInt(e.target.value))}
+              />
+            </div>
+            <div className="total-amount">
+              <h4>Total Amount: ₹{selectedSpace.pricePerHour * bookingDuration}</h4>
+            </div>
+            <div className="payment-actions">
+              <button className="pay-btn" onClick={handlePayment}>Pay Now</button>
+              <button className="cancel-btn" onClick={() => { setShowPayment(false); setSelectedSpace(null); }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showContactForm && (
+        <div className="contact-form-modal">
+          <div className="contact-form">
+            <h3>Provider Contact Details</h3>
+            <p className="form-note">Please provide your contact information for renters</p>
+            <input
+              type="tel"
+              placeholder="Mobile Number"
+              value={contactInfo.mobile}
+              onChange={(e) => setContactInfo({ ...contactInfo, mobile: e.target.value })}
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email Address"
+              value={contactInfo.email}
+              onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
+              required
+            />
+            <textarea
+              placeholder="Full Address"
+              value={contactInfo.address}
+              onChange={(e) => setContactInfo({ ...contactInfo, address: e.target.value })}
+              rows="3"
+              required
+            />
+            <div className="form-actions">
+              <button className="submit-btn" onClick={submitProvideSpace}>Submit</button>
+              <button className="cancel-btn" onClick={() => setShowContactForm(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLogin && !user && (
+        <div className="auth-box">
+          {showRegister ? (
+            <form onSubmit={handleRegister}>
+              <h3>Register as {loginType === 'provider' ? 'Provider' : 'Renter'}</h3>
+              <input
+                placeholder="Username"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                required
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+              />
+              <input
+                type="tel"
+                placeholder="Mobile Number"
+                value={formData.mobile}
+                onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                required
+              />
+              <input
+                type="email"
+                placeholder="Email Address"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+              <input
+                placeholder="Address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                required
+              />
+              <input type="hidden" value={loginType} />
+              <button type="submit">Register</button>
+              <button type="button" onClick={() => setShowRegister(false)}>Back to Login</button>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin}>
+              <h3>Login as {loginType === 'provider' ? 'Provider' : 'Renter'}</h3>
+              <input
+                placeholder="Username"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                required
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+              />
+              <button type="submit">Login</button>
+              <button type="button" onClick={() => { setShowRegister(true); setFormData({ ...formData, userType: loginType }); }}>Register</button>
+              <button type="button" onClick={() => setShowLogin(false)}>Cancel</button>
+            </form>
+          )}
+        </div>
+      )}
+
+      {user && (
+        <div className="user-info">
+          <p>Welcome, {user.username} ({user.userType === 'provider' ? '🏠 Provider' : '🚗 Renter'})</p>
+          {userLocation && <p className="location-status">📍 Location: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}</p>}
+        </div>
+      )}
+
+      {user && (
+        <div className="action-center">
+          {user.userType === 'renter' ? (
+            <>
+              <button className="find-space-btn" onClick={handleFindSpace}>
+                🔍 Find Nearby Parking Spaces
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="provide-space-btn" onClick={handleFindSpace}>
+                ➕ Provide Parking Space
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;

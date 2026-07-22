@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 function App() {
   const [user, setUser] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
@@ -93,14 +95,14 @@ function App() {
   };
 
   const loadSpaces = async () => {
-    const res = await fetch('http://localhost:3000/spaces');
+    const res = await fetch(`${API_BASE_URL}/spaces`);
     const data = await res.json();
     setSpaces(data);
   };
 
   const loadUsers = async () => {
     try {
-      const res = await fetch('http://localhost:3000/users');
+      const res = await fetch(`${API_BASE_URL}/users`);
       const data = await res.json();
       console.log('Users loaded:', data);
       setAllUsers(data);
@@ -112,7 +114,7 @@ function App() {
 
   const loadAllParkingSpaces = async () => {
     try {
-      const res = await fetch('http://localhost:3000/spaces');
+      const res = await fetch(`${API_BASE_URL}/spaces`);
       const data = await res.json();
       console.log('Parking spaces loaded:', data);
       setAllParkingSpaces(data);
@@ -164,14 +166,14 @@ function App() {
   };
 
   const findNearbySpaces = async (lat, lng) => {
-    const res = await fetch(`http://localhost:3000/nearby-spaces?lat=${lat}&lng=${lng}`);
+    const res = await fetch(`${API_BASE_URL}/nearby-spaces?lat=${lat}&lng=${lng}`);
     const data = await res.json();
     setNearbySpaces(data);
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:3000/login', {
+    const res = await fetch(`${API_BASE_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: formData.username, password: formData.password })
@@ -193,7 +195,7 @@ function App() {
     e.preventDefault();
     const registerData = { ...formData, userType: loginType };
     console.log('Registering with data:', registerData);
-    const res = await fetch('http://localhost:3000/register', {
+    const res = await fetch(`${API_BASE_URL}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(registerData)
@@ -272,7 +274,7 @@ function App() {
     } else if (user.userType === 'provider') {
       console.log('Provider flow - submitting parking space');
       try {
-        const res = await fetch('http://localhost:3000/provide', {
+        const res = await fetch(`${API_BASE_URL}/provide`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -362,7 +364,7 @@ function App() {
       alert('Please enter valid price (minimum ₹10/hour)');
       return;
     }
-    const res = await fetch('http://localhost:3000/provide', {
+    const res = await fetch(`${API_BASE_URL}/provide`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -398,7 +400,7 @@ function App() {
 
   const handlePayment = async () => {
     const totalAmount = selectedSpace.pricePerHour * bookingDuration;
-    const res = await fetch('http://localhost:3000/book', {
+    const res = await fetch(`${API_BASE_URL}/book`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -411,7 +413,7 @@ function App() {
     });
     const data = await res.json();
     if (data.success) {
-      const payRes = await fetch('http://localhost:3000/payment', {
+      const payRes = await fetch(`${API_BASE_URL}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ spaceId: selectedSpace._id })
@@ -427,6 +429,32 @@ function App() {
       }
     } else {
       alert(data.message);
+    }
+  };
+
+  const handleReleaseSpace = async (spaceId) => {
+    if (!window.confirm('Are you sure you want to release this parking space?')) {
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/release`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          spaceId, 
+          renterId: user.userId 
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'Parking space released successfully!');
+        loadSpaces();
+      } else {
+        alert(data.message || 'Failed to release parking space.');
+      }
+    } catch (error) {
+      console.error('Error releasing parking space:', error);
+      alert('An error occurred. Please try again.');
     }
   };
 
@@ -1256,6 +1284,82 @@ function App() {
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {user && user.userType === 'renter' && (
+        <div className="dashboard-section">
+          <h2>🚗 My Active Bookings</h2>
+          <div className="dashboard-grid">
+            {spaces.filter(s => s.renterId === user.userId).length > 0 ? (
+              spaces.filter(s => s.renterId === user.userId).map(space => (
+                <div key={space._id} className="dashboard-card">
+                  <div className="card-header">
+                    <h3>{space.parkingName || 'Parking Spot'}</h3>
+                    <span className="badge available">Active Booking</span>
+                  </div>
+                  <div className="card-body">
+                    <p><strong>Address:</strong> {space.address}</p>
+                    <p><strong>Mobile:</strong> {space.mobile}</p>
+                    <p><strong>Duration:</strong> {space.bookingDuration} hours</p>
+                    <p><strong>Rate:</strong> ₹{space.pricePerHour}/hour</p>
+                    <p><strong>Total Paid:</strong> ₹{space.totalAmount}</p>
+                  </div>
+                  <div className="card-actions">
+                    <button className="release-btn" onClick={() => handleReleaseSpace(space._id)}>
+                      Release Space
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="no-items-card">
+                <p>You have no active bookings. Click "Find Nearby Parking Spaces" above to book one!</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {user && user.userType === 'provider' && (
+        <div className="dashboard-section">
+          <h2>🏠 My Listed Parking Spaces</h2>
+          <div className="dashboard-grid">
+            {spaces.filter(s => s.providerId === user.userId).length > 0 ? (
+              spaces.filter(s => s.providerId === user.userId).map(space => (
+                <div key={space._id} className="dashboard-card">
+                  <div className="card-header">
+                    <h3>{space.parkingName || 'Parking Spot'}</h3>
+                    <span className={`badge ${space.isAvailable ? 'available' : 'occupied'}`}>
+                      {space.isAvailable ? 'Available' : 'Occupied'}
+                    </span>
+                  </div>
+                  <div className="card-body">
+                    <p><strong>Address:</strong> {space.address}</p>
+                    <p><strong>Rate:</strong> ₹{space.pricePerHour}/hour</p>
+                    {!space.isAvailable && (
+                      <>
+                        <p><strong>Renter:</strong> {space.renterName}</p>
+                        <p><strong>Booking Duration:</strong> {space.bookingDuration} hours</p>
+                        <p><strong>Status:</strong> {space.isPaid ? 'Paid' : 'Unpaid'}</p>
+                      </>
+                    )}
+                  </div>
+                  <div className="card-actions">
+                    {!space.isAvailable && (
+                      <button className="release-btn" onClick={() => handleReleaseSpace(space._id)}>
+                        Force Release Space
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="no-items-card">
+                <p>You have not listed any parking spaces yet. Click "Provide Parking Space" above to list one!</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -85,16 +85,25 @@ router.post('/payment', async (req, res) => {
 });
 
 router.post('/release', async (req, res) => {
-  const { spaceNumber, renterId } = req.body;
-  const space = await Parking.findOne({ spaceNumber, renterId });
+  const { spaceId, renterId } = req.body;
+  
+  const query = spaceId ? { _id: spaceId } : { spaceNumber: req.body.spaceNumber };
+  if (renterId) {
+    query.renterId = renterId;
+  }
+
+  const space = await Parking.findOne(query);
   if (space) {
     space.renterId = null;
     space.renterName = null;
     space.isAvailable = true;
+    space.isPaid = false;
+    space.bookingDuration = 0;
+    space.totalAmount = 0;
     await space.save();
-    res.json({ success: true });
+    res.json({ success: true, message: 'Parking space released successfully' });
   } else {
-    res.json({ success: false });
+    res.json({ success: false, message: 'Parking space not found or not rented by you' });
   }
 });
 

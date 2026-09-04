@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import './App.css';
+
+const LocationPickerMap = lazy(() => import('./LocationPickerMap'));
+const NearbyParkingMap = lazy(() => import('./NearbyParkingMap'));
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -803,59 +806,28 @@ function App() {
       {showLocationPicker && (
         <div className="location-picker-modal">
           <div className="location-picker-box">
-            <h3>📍 Select Your Location</h3>
-            <p className="picker-subtitle">Choose how you want to set your location</p>
-            
-            <div className="location-options">
-              <div className="location-option-card" onClick={getCurrentLocation}>
-                <div className="option-icon">📍</div>
-                <h4>Use Current Location</h4>
-                <p>Automatically detect your location</p>
-              </div>
-              
-              <div className="location-option-card">
-                <div className="option-icon">🔗</div>
-                <h4>Paste Google Maps Link</h4>
-                <input
-                  type="text"
-                  placeholder="https://maps.google.com/..."
-                  value={googleMapsLink}
-                  onChange={(e) => setGoogleMapsLink(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <button onClick={(e) => { e.stopPropagation(); handleGoogleLink(); }}>Extract Location</button>
-              </div>
-              
-              <div className="location-option-card">
-                <div className="option-icon">✏️</div>
-                <h4>Enter Coordinates</h4>
-                <div className="coord-inputs">
-                  <input
-                    type="number"
-                    step="any"
-                    placeholder="Latitude"
-                    value={searchLocation.lat}
-                    onChange={(e) => setSearchLocation({ ...searchLocation, lat: e.target.value })}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <input
-                    type="number"
-                    step="any"
-                    placeholder="Longitude"
-                    value={searchLocation.lng}
-                    onChange={(e) => setSearchLocation({ ...searchLocation, lng: e.target.value })}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); handleManualLocation(); }}>Set Location</button>
-              </div>
+            <h3>📍 {user?.userType === 'provider' ? 'Select Parking Location' : 'Select Your Location'}</h3>
+            <p className="picker-subtitle">Click on the map or search to set location</p>
+
+            <div className="quick-location-row">
+              <button className="use-gps-btn" onClick={getCurrentLocation}>📍 Use My GPS Location</button>
             </div>
+
+            <Suspense fallback={<div className="map-loading">Loading map...</div>}>
+              <LocationPickerMap
+                location={tempLocation}
+                onLocationSelect={(pos) => setTempLocation(pos)}
+              />
+            </Suspense>
 
             {tempLocation && (
               <div className="selected-location">
                 <p>✅ Location Selected</p>
                 <p className="coords">Lat: {tempLocation.lat.toFixed(6)}, Lng: {tempLocation.lng.toFixed(6)}</p>
               </div>
+            )}
+            {!tempLocation && (
+              <p className="location-required-hint">⚠️ Please select a location on the map to continue.</p>
             )}
 
             <div className="picker-actions">
@@ -872,44 +844,19 @@ function App() {
 
       {showMap && userLocation && user?.userType === 'renter' && (
         <div className="map-modal">
-          <div className="map-container">
+          <div className="map-container map-container-wide">
             <h3>🔍 Nearby Available Parking Spaces</h3>
-            <div className="map-wrapper">
-              <iframe
-                width="100%"
-                height="400"
-                style={{ border: 0, borderRadius: '10px' }}
-                loading="lazy"
-                allowFullScreen
-                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${userLocation.lat},${userLocation.lng}&zoom=14`}
-              ></iframe>
-            </div>
-            
-            <div className="nearby-list">
-              <h4>🏛️ Available Parking Spaces Near You:</h4>
-              {nearbySpaces.length > 0 ? (
-                nearbySpaces.map((space) => (
-                  <div key={space._id} className="nearby-item">
-                    <div className="space-details">
-                      <h5>{space.parkingName || 'Parking Space'}</h5>
-                      <p><strong>Provider:</strong> {space.providerName}</p>
-                      <p><strong>Address:</strong> {space.address}</p>
-                      <p><strong>Distance:</strong> {space.distance?.toFixed(2)} km away</p>
-                      <p><strong>Price:</strong> ₹{space.pricePerHour}/hour</p>
-                      <p><strong>Contact:</strong> {space.mobile}</p>
-                      {space.description && <p><strong>Info:</strong> {space.description}</p>}
-                    </div>
-                    <button className="book-btn" onClick={() => handleBookSpace(space)}>Book Now</button>
-                  </div>
-                ))
-              ) : (
-                <div className="no-spaces">
-                  <p>😞 No parking spaces available nearby</p>
-                  <p>Try searching in a different location</p>
-                </div>
-              )}
-            </div>
-            
+            <Suspense fallback={<div className="map-loading">Loading map...</div>}>
+              <NearbyParkingMap
+                userLocation={userLocation}
+                nearbySpaces={nearbySpaces}
+                onBook={handleBookSpace}
+                onUseMyLocation={() => {
+                  getUserLocation();
+                  if (userLocation) findNearbySpaces(userLocation.lat, userLocation.lng);
+                }}
+              />
+            </Suspense>
             <div className="map-actions">
               <button className="cancel-btn" onClick={() => { setShowMap(false); setNearbySpaces([]); }}>Close</button>
             </div>
@@ -917,219 +864,7 @@ function App() {
         </div>
       )}
 
-      {showMap && userLocation && user?.userType === 'provider' && (
-        <div className="map-modal">
-          <div className="map-container">
-            <h3>{user?.userType === 'provider' ? 'Select Your Parking Location' : 'Nearby Available Parking Spaces'}</h3>
-            <p style={{color: 'red', fontWeight: 'bold'}}>DEBUG: User = {JSON.stringify(user)}</p>
-            {user.userType === 'provider' && (
-              <p className="map-instruction">📍 Draw a rectangle on the map to mark your parking area</p>
-            )}
-            <div className="map-wrapper">
-              <iframe
-                width="100%"
-                height="500"
-                style={{ border: 0, position: 'relative', zIndex: 1 }}
-                loading="lazy"
-                allowFullScreen
-                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${userLocation.lat},${userLocation.lng}&zoom=18`}
-              ></iframe>
-              {user.userType === 'provider' && (
-                <>
-                  <div 
-                    className="map-marker draggable"
-                    style={{ 
-                      left: `${markerPosition.x}px`, 
-                      top: `${markerPosition.y}px`,
-                      position: 'absolute',
-                      fontSize: '48px',
-                      zIndex: 20,
-                      cursor: 'move',
-                      transform: 'translate(-50%, -100%)'
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setIsDragging(true);
-                    }}
-                  >
-                    📍
-                  </div>
-                  <canvas 
-                    id="drawingCanvas" 
-                    className="drawing-canvas"
-                    width="800"
-                    height="500"
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      cursor: 'crosshair',
-                      zIndex: 10,
-                      pointerEvents: 'all',
-                      background: 'rgba(100, 200, 255, 0.1)'
-                    }}
-                    onMouseMove={(e) => {
-                      if (isDragging) {
-                        const rect = e.currentTarget.parentElement.getBoundingClientRect();
-                        setMarkerPosition({
-                          x: e.clientX - rect.left,
-                          y: e.clientY - rect.top
-                        });
-                        return;
-                      }
-                      if (moving) {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const dx = e.clientX - rect.left - dragStart.x;
-                        const dy = e.clientY - rect.top - dragStart.y;
-                        setParkingRect(prev => ({
-                          ...prev,
-                          x: prev.x + dx,
-                          y: prev.y + dy
-                        }));
-                        setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-                        return;
-                      }
-                      if (resizing) {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const mouseX = e.clientX - rect.left;
-                        const mouseY = e.clientY - rect.top;
-                        setParkingRect(prev => {
-                          let newRect = { ...prev };
-                          if (resizing === 'se') {
-                            newRect.width = mouseX - prev.x;
-                            newRect.height = mouseY - prev.y;
-                          } else if (resizing === 'sw') {
-                            newRect.width = prev.width + (prev.x - mouseX);
-                            newRect.x = mouseX;
-                            newRect.height = mouseY - prev.y;
-                          } else if (resizing === 'ne') {
-                            newRect.width = mouseX - prev.x;
-                            newRect.height = prev.height + (prev.y - mouseY);
-                            newRect.y = mouseY;
-                          } else if (resizing === 'nw') {
-                            newRect.width = prev.width + (prev.x - mouseX);
-                            newRect.height = prev.height + (prev.y - mouseY);
-                            newRect.x = mouseX;
-                            newRect.y = mouseY;
-                          }
-                          return newRect;
-                        });
-                      }
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const mouseX = e.clientX - rect.left;
-                      const mouseY = e.clientY - rect.top;
-                      
-                      console.log('Canvas clicked at:', mouseX, mouseY);
-                      
-                      // Check if clicking on marker
-                      const markerDist = Math.sqrt(Math.pow(mouseX - markerPosition.x, 2) + Math.pow(mouseY - markerPosition.y, 2));
-                      if (markerDist < 30) {
-                        console.log('Marker clicked');
-                        setIsDragging(true);
-                        return;
-                      }
-                      
-                      const handleSize = 10;
-                      // Check corners for resize
-                      if (Math.abs(mouseX - parkingRect.x) < handleSize && Math.abs(mouseY - parkingRect.y) < handleSize) {
-                        setResizing('nw');
-                      } else if (Math.abs(mouseX - (parkingRect.x + parkingRect.width)) < handleSize && Math.abs(mouseY - parkingRect.y) < handleSize) {
-                        setResizing('ne');
-                      } else if (Math.abs(mouseX - parkingRect.x) < handleSize && Math.abs(mouseY - (parkingRect.y + parkingRect.height)) < handleSize) {
-                        setResizing('sw');
-                      } else if (Math.abs(mouseX - (parkingRect.x + parkingRect.width)) < handleSize && Math.abs(mouseY - (parkingRect.y + parkingRect.height)) < handleSize) {
-                        setResizing('se');
-                      } else if (mouseX > parkingRect.x && mouseX < parkingRect.x + parkingRect.width &&
-                                 mouseY > parkingRect.y && mouseY < parkingRect.y + parkingRect.height) {
-                        // Move rectangle
-                        console.log('Rectangle body clicked');
-                        setMoving(true);
-                        setDragStart({ x: mouseX, y: mouseY });
-                      } else {
-                        // Click anywhere to move marker
-                        console.log('Moving marker to:', mouseX, mouseY);
-                        setMarkerPosition({ x: mouseX, y: mouseY });
-                        setShowSubmitButton(true);
-                      }
-                    }}
-                    onMouseUp={() => {
-                      if (isDragging) {
-                        setIsDragging(false);
-                        return;
-                      }
-                      setResizing(null);
-                      setMoving(false);
-                    }}
-                  />
-                </>
-              )}
-            </div>
-            {user.userType === 'provider' && markerPosition && (
-              <div className="location-info">
-                <p>📍 Marker Position: X: {markerPosition.x.toFixed(0)}, Y: {markerPosition.y.toFixed(0)}</p>
-                <p className="hint">Click anywhere on map to place marker OR drag it</p>
-                <div className="pricing-input">
-                  <label>💰 Price per Hour: ₹</label>
-                  <input
-                    type="number"
-                    min="10"
-                    value={pricePerHour}
-                    onChange={(e) => setPricePerHour(e.target.value)}
-                    placeholder="50"
-                  />
-                </div>
-                {showSubmitButton && (
-                  <button className="submit-location-btn" onClick={handleProvideSpace}>
-                    ✅ Submit Location & Parking Area
-                  </button>
-                )}
-              </div>
-            )}
-            {user.userType === 'provider' && (
-              <div className="area-info">
-                ✅ Adjust the green rectangle to mark your parking area, then click "Confirm"
-              </div>
-            )}
-            {user.userType === 'renter' && (
-              <div className="nearby-list">
-                <h4>Available Spaces Near You:</h4>
-                {nearbySpaces.length > 0 ? (
-                  nearbySpaces.map((space) => (
-                    <div key={space._id} className="nearby-item">
-                      <div>
-                        <p><strong>Provider:</strong> {space.providerName}</p>
-                        <p><strong>Distance:</strong> {space.distance?.toFixed(2)} km</p>
-                        <p><strong>Price:</strong> ₹{space.pricePerHour}/hour</p>
-                        <p><strong>Contact:</strong> {space.mobile}</p>
-                      </div>
-                      <button onClick={() => handleBookSpace(space)}>Book & Pay</button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="no-spaces">No parking spaces available nearby. Try again later!</p>
-                )}
-              </div>
-            )}
-            <div className="map-actions">
-              {user.userType === 'provider' && (
-                <>
-                  <button className="clear-btn" onClick={() => {
-                    setParkingRect({ x: 300, y: 200, width: 200, height: 100 });
-                    setShowSubmitButton(false);
-                  }}>Reset Area</button>
-                </>
-              )}
-              <button className="cancel-btn" onClick={() => { setShowMap(false); setSelectedMapLocation(null); setParkingArea(null); setShowSubmitButton(false); }}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {showPayment && selectedSpace && (
         <div className="payment-modal">

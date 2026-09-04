@@ -14,12 +14,16 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 router.get('/nearby-spaces', async (req, res) => {
-  const { lat, lng } = req.query;
-  const spaces = await Parking.find({ providerId: { $ne: null }, isAvailable: true });
-  const nearby = spaces.map(space => ({
-    ...space.toObject(),
-    distance: calculateDistance(parseFloat(lat), parseFloat(lng), space.latitude, space.longitude)
-  })).filter(s => s.distance < 10).sort((a, b) => a.distance - b.distance);
+  const { lat, lng, radius } = req.query;
+  const maxRadius = parseFloat(radius) || 10;
+  const spaces = await Parking.find({ providerId: { $ne: null }, latitude: { $ne: null }, longitude: { $ne: null } });
+  const nearby = spaces
+    .map(space => ({
+      ...space.toObject(),
+      distance: calculateDistance(parseFloat(lat), parseFloat(lng), space.latitude, space.longitude)
+    }))
+    .filter(s => s.distance <= maxRadius)
+    .sort((a, b) => a.distance - b.distance);
   res.json(nearby);
 });
 
@@ -41,6 +45,7 @@ router.post('/provide', async (req, res) => {
     providerName,
     latitude,
     longitude,
+    location: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] },
     parkingArea,
     mobile,
     email,

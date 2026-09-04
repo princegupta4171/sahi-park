@@ -9,6 +9,10 @@ const parkingSchema = new mongoose.Schema({
   isAvailable: { type: Boolean, default: true },
   latitude: Number,
   longitude: Number,
+  location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number] } // [longitude, latitude]
+  },
   parkingArea: {
     startX: Number,
     startY: Number,
@@ -26,5 +30,7 @@ const parkingSchema = new mongoose.Schema({
   totalSpaces: { type: Number, default: 1 },
   description: String
 });
+
+parkingSchema.index({ location: '2dsphere' }, { sparse: true });
 
 module.exports = mongoose.model('Parking', parkingSchema);

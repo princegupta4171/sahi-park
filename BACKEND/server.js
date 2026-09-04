@@ -2,18 +2,19 @@ const app = require('./src/app');
 const connectDB = require('./src/config/db');
 const Parking = require('./src/models/Parking');
 
-connectDB();
+const PORT = process.env.PORT || 3000;
 
-// Initialize 10 parking spaces
-Parking.countDocuments().then(count => {
+connectDB().then(async () => {
+  const count = await Parking.countDocuments();
   if (count === 0) {
     for (let i = 1; i <= 10; i++) {
-      new Parking({ spaceNumber: i }).save();
+      await new Parking({ spaceNumber: i }).save();
     }
   }
+  app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+}).catch(err => {
+  console.error('Failed to connect to MongoDB:', err);
+  process.exit(1);
 });
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
 
 module.exports = app;

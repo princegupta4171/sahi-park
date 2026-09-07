@@ -551,17 +551,17 @@ function App() {
             <div className="contact-info-grid">
               <div className="contact-card">
                 <div className="contact-icon">👤</div>
-                <h3>Founder</h3>
+                <h3>Team Leader</h3>
                 <p className="contact-name">Prince Gupta</p>
               </div>
               <div className="contact-card">
                 <div className="contact-icon">👤</div>
-                <h3>Co-Founder</h3>
+                <h3>Devloper</h3>
                 <p className="contact-name">Satya Dubey</p>
               </div>
               <div className="contact-card">
                 <div className="contact-icon">💼</div>
-                <h3>Manager</h3>
+                <h3>Tester</h3>
                 <p className="contact-name">Sachin Chauhan</p>
               </div>
               <div className="contact-card highlight">

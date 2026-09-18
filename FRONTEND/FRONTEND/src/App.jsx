@@ -470,7 +470,6 @@ function App() {
             <nav className="nav-buttons">
               <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Home</button>
               <button onClick={() => setShowAbout(true)}>About Us</button>
-              <button onClick={() => { if (user) { handleFindSpace(); } else { setShowLogin(true); setLoginType('renter'); } }}>Find Your Space</button>
               <button onClick={() => setShowContact(true)}>Contact Us</button>
               {!user && (
                 <>
@@ -1092,7 +1091,8 @@ function App() {
       )}
 
       {showLogin && !user && (
-        <div className="auth-box">
+        <div className="auth-overlay" onClick={() => { setShowLogin(false); setShowRegister(false); }}>
+        <div className="auth-box" onClick={(e) => e.stopPropagation()}>
           {showRegister ? (
             <form onSubmit={handleRegister}>
               <h3>Register as {loginType === 'provider' ? 'Provider' : 'Renter'}</h3>
@@ -1154,6 +1154,7 @@ function App() {
               <button type="button" onClick={() => setShowLogin(false)}>Cancel</button>
             </form>
           )}
+        </div>
         </div>
       )}
 

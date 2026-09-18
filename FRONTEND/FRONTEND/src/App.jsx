@@ -59,6 +59,13 @@ function App() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
+  // Lock body scroll when any modal is open
+  useEffect(() => {
+    const anyOpen = showLogin || showAbout || showContact || showAdmin || showProviderForm || showLocationPicker || showMap || showPayment || showContactForm;
+    document.body.style.overflow = anyOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [showLogin, showAbout, showContact, showAdmin, showProviderForm, showLocationPicker, showMap, showPayment, showContactForm]);
+
   useEffect(() => {
     if (showMap && user?.userType === 'provider') {
       console.log('Provider map opened, initializing canvas...');

@@ -54,6 +54,10 @@ function App() {
   });
   const [showAbout, setShowAbout] = useState(false);
   const [showContact, setShowContact] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
   useEffect(() => {
     if (showMap && user?.userType === 'provider') {
@@ -194,24 +198,45 @@ function App() {
     }
   };
 
+  const handleSendOTP = async (e) => {
+    e.preventDefault();
+    if (!formData.username || !formData.password || !formData.mobile || !formData.email || !formData.address) {
+      alert('Please fill all fields'); return;
+    }
+    setOtpLoading(true);
+    const res = await fetch(`${API_BASE_URL}/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: formData.email })
+    });
+    const data = await res.json();
+    setOtpLoading(false);
+    if (data.success) { setOtpStep(true); setOtpSent(true); }
+    else alert(data.message);
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
-    const registerData = { ...formData, userType: loginType };
-    console.log('Registering with data:', registerData);
+    setOtpLoading(true);
+    const verifyRes = await fetch(`${API_BASE_URL}/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: formData.email, otp: otpValue })
+    });
+    const verifyData = await verifyRes.json();
+    if (!verifyData.success) { setOtpLoading(false); alert('Invalid or expired OTP'); return; }
     const res = await fetch(`${API_BASE_URL}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(registerData)
+      body: JSON.stringify({ ...formData, userType: loginType })
     });
     const data = await res.json();
-    console.log('Register response:', data);
+    setOtpLoading(false);
     if (data.success) {
       alert('Registration successful! Please login.');
-      setShowRegister(false);
-      setFormData({ username: '', password: '', userType: loginType });
-    } else {
-      alert(data.message);
-    }
+      setShowRegister(false); setOtpStep(false); setOtpValue(''); setOtpSent(false);
+      setFormData({ username: '', password: '', userType: 'renter' });
+    } else alert(data.message);
   };
 
   const extractCoordsFromGoogleLink = (link) => {
@@ -473,12 +498,12 @@ function App() {
               <button onClick={() => setShowContact(true)}>Contact Us</button>
               {!user && (
                 <>
-                  <button className="login-btn renter" onClick={() => { setShowLogin(true); setLoginType('renter'); }}>Login as Renter</button>
-                  <button className="login-btn provider" onClick={() => { setShowLogin(true); setLoginType('provider'); }}>Login as Provider</button>
+                  <button className="login-btn renter" onClick={() => { setShowLogin(true); setLoginType('renter'); setShowRegister(false); setOtpStep(false); setOtpValue(''); }}>Login</button>
+                  <button className="login-btn provider" onClick={() => { setShowLogin(true); setLoginType('renter'); setShowRegister(true); setOtpStep(false); setOtpValue(''); }}>Sign Up</button>
                 </>
               )}
               {user && <button className="logout-btn" onClick={() => { setUser(null); setSpaces([]); setShowLogin(false); }}>Logout</button>}
-              <button className="admin-btn" onClick={() => { setShowAdmin(!showAdmin); setIsAdminAuthenticated(false); setAdminPassword(''); }}>Admin Panel</button>
+              <button className="admin-btn" onClick={() => { setShowAdmin(!showAdmin); setIsAdminAuthenticated(false); setAdminPassword(''); }}>Admin</button>
             </nav>
           </div>
         </header>
@@ -1091,20 +1116,15 @@ function App() {
       )}
 
       {showLogin && !user && (
-        <div className="auth-overlay" onClick={() => { setShowLogin(false); setShowRegister(false); }}>
+        <div className="auth-overlay" onClick={() => { setShowLogin(false); setShowRegister(false); setOtpStep(false); setOtpValue(''); }}>
           <div className="auth-box-3d" onClick={(e) => e.stopPropagation()}>
 
             <div className="auth-car-scene">
-              <div className="auth-road">
-                <div className="road-line"></div>
-              </div>
+              <div className="auth-road"><div className="road-line"></div></div>
               <div className="auth-car">
                 <div className="car-body">
                   <div className="car-roof"></div>
-                  <div className="car-windows">
-                    <div className="car-win car-win-l"></div>
-                    <div className="car-win car-win-r"></div>
-                  </div>
+                  <div className="car-windows"><div className="car-win car-win-l"></div><div className="car-win car-win-r"></div></div>
                   <div className="car-light car-light-f"></div>
                   <div className="car-light car-light-b"></div>
                 </div>
@@ -1115,14 +1135,43 @@ function App() {
               </div>
               <div className="auth-form-title">
                 <span className="auth-logo">🅿️</span>
-                <span>{showRegister ? 'Create Account' : `Welcome Back`}</span>
+                <span>{showRegister ? (otpStep ? 'Verify Email' : 'Create Account') : 'Welcome Back'}</span>
               </div>
             </div>
 
             <div className="auth-form-body">
-              <div className="auth-type-badge">{loginType === 'provider' ? '🏠 Provider' : '🚗 Renter'}</div>
-              {showRegister ? (
-                <form onSubmit={handleRegister}>
+
+              {/* Login/Signup toggle tabs */}
+              <div className="auth-tabs">
+                <button className={`auth-tab ${!showRegister ? 'active' : ''}`} onClick={() => { setShowRegister(false); setOtpStep(false); setOtpValue(''); }}>Login</button>
+                <button className={`auth-tab ${showRegister ? 'active' : ''}`} onClick={() => { setShowRegister(true); setOtpStep(false); setOtpValue(''); }}>Sign Up</button>
+              </div>
+
+              {/* User type selector */}
+              <div className="auth-type-row">
+                <button className={`auth-type-btn ${loginType === 'renter' ? 'active' : ''}`} onClick={() => setLoginType('renter')}>🚗 Renter</button>
+                <button className={`auth-type-btn ${loginType === 'provider' ? 'active' : ''}`} onClick={() => setLoginType('provider')}>🏠 Provider</button>
+              </div>
+
+              {/* LOGIN FORM */}
+              {!showRegister && (
+                <form onSubmit={handleLogin}>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">👤</span>
+                    <input placeholder="Username" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required />
+                  </div>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">🔒</span>
+                    <input type="password" placeholder="Password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
+                  </div>
+                  <button type="submit" className="auth-submit-btn">Login 🚀</button>
+                  <button type="button" className="auth-cancel-btn" onClick={() => setShowLogin(false)}>✕ Cancel</button>
+                </form>
+              )}
+
+              {/* SIGNUP - STEP 1: Details */}
+              {showRegister && !otpStep && (
+                <form onSubmit={handleSendOTP}>
                   <div className="auth-input-group">
                     <span className="auth-input-icon">👤</span>
                     <input placeholder="Username" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required />
@@ -1143,24 +1192,33 @@ function App() {
                     <span className="auth-input-icon">📍</span>
                     <input placeholder="Address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} required />
                   </div>
-                  <button type="submit" className="auth-submit-btn">Create Account ✨</button>
-                  <button type="button" className="auth-switch-btn" onClick={() => setShowRegister(false)}>Already have account? Login</button>
-                </form>
-              ) : (
-                <form onSubmit={handleLogin}>
-                  <div className="auth-input-group">
-                    <span className="auth-input-icon">👤</span>
-                    <input placeholder="Username" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required />
-                  </div>
-                  <div className="auth-input-group">
-                    <span className="auth-input-icon">🔒</span>
-                    <input type="password" placeholder="Password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
-                  </div>
-                  <button type="submit" className="auth-submit-btn">Login 🚀</button>
-                  <button type="button" className="auth-switch-btn" onClick={() => { setShowRegister(true); setFormData({ ...formData, userType: loginType }); }}>New here? Register</button>
-                  <button type="button" className="auth-cancel-btn" onClick={() => setShowLogin(false)}>✕ Cancel</button>
+                  <button type="submit" className="auth-submit-btn" disabled={otpLoading}>
+                    {otpLoading ? 'Sending OTP...' : 'Send OTP to Email →'}
+                  </button>
                 </form>
               )}
+
+              {/* SIGNUP - STEP 2: OTP Verify */}
+              {showRegister && otpStep && (
+                <form onSubmit={handleRegister}>
+                  <p className="otp-hint">📧 OTP sent to <strong>{formData.email}</strong></p>
+                  <div className="auth-input-group otp-input-group">
+                    <span className="auth-input-icon">🔢</span>
+                    <input
+                      placeholder="Enter 6-digit OTP"
+                      value={otpValue}
+                      onChange={(e) => setOtpValue(e.target.value)}
+                      maxLength={6}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="auth-submit-btn" disabled={otpLoading}>
+                    {otpLoading ? 'Verifying...' : '✅ Verify & Register'}
+                  </button>
+                  <button type="button" className="auth-switch-btn" onClick={() => { setOtpStep(false); setOtpValue(''); }}>← Back</button>
+                </form>
+              )}
+
             </div>
           </div>
         </div>

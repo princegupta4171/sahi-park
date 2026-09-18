@@ -3667,3 +3667,77 @@ body {
   .auth-box-3d { width: 95vw; }
   .auth-form-body { padding: 18px 18px 22px; }
 }
+
+/* ===== AUTH TABS ===== */
+.auth-tabs {
+  display: flex;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 16px;
+  gap: 4px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(255,255,255,0.4);
+  transition: all 0.3s;
+}
+
+.auth-tab.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+}
+
+/* ===== AUTH TYPE ROW ===== */
+.auth-type-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.auth-type-btn {
+  flex: 1;
+  padding: 9px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.45);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.auth-type-btn.active {
+  border-color: rgba(102,126,234,0.6);
+  background: rgba(102,126,234,0.15);
+  color: #a78bfa;
+}
+
+/* ===== OTP STYLES ===== */
+.otp-hint {
+  color: rgba(255,255,255,0.55);
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.otp-hint strong { color: #a78bfa; }
+
+.otp-input-group input {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  letter-spacing: 8px !important;
+  text-align: center;
+  color: #a78bfa !important;
+}

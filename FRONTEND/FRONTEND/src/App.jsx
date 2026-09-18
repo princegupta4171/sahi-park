@@ -543,6 +543,161 @@ function App() {
         </div>
       )}
       
+      {!user && (
+        <div className="how-it-works">
+          <div className="hiw-container">
+            <div className="section-badge">Simple Process</div>
+            <h2 className="section-title">How It Works</h2>
+            <p className="section-sub">Get started in 3 easy steps</p>
+            <div className="hiw-grid">
+              <div className="hiw-card">
+                <div className="hiw-number">01</div>
+                <div className="hiw-icon-wrap"><span className="hiw-icon">📱</span></div>
+                <h3>Register & Login</h3>
+                <p>Create your account as a Renter or Provider in seconds</p>
+                <div className="hiw-arrow">→</div>
+              </div>
+              <div className="hiw-card">
+                <div className="hiw-number">02</div>
+                <div className="hiw-icon-wrap"><span className="hiw-icon">📍</span></div>
+                <h3>Find or List Space</h3>
+                <p>Search nearby parking or list your own space on the map</p>
+                <div className="hiw-arrow">→</div>
+              </div>
+              <div className="hiw-card">
+                <div className="hiw-number">03</div>
+                <div className="hiw-icon-wrap"><span className="hiw-icon">✅</span></div>
+                <h3>Book & Park</h3>
+                <p>Pay securely and park your vehicle with confidence</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!user && (
+        <div className="stats-section">
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-icon">🚗</div>
+              <div className="stat-number">500+</div>
+              <div className="stat-label">Happy Renters</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">🏢</div>
+              <div className="stat-number">200+</div>
+              <div className="stat-label">Parking Spaces</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">🌆</div>
+              <div className="stat-number">10+</div>
+              <div className="stat-label">Cities Covered</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">⭐</div>
+              <div className="stat-number">4.8</div>
+              <div className="stat-label">Average Rating</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!user && (
+        <div className="testimonials-section">
+          <div className="testimonials-container">
+            <div className="section-badge">Reviews</div>
+            <h2 className="section-title">What Our Users Say</h2>
+            <div className="testimonials-grid">
+              <div className="testimonial-card">
+                <div className="testimonial-quote">"</div>
+                <p>Sahi Park ne meri life easy kar di! Ab kabhi parking ki tension nahi hoti. Bahut badhiya app hai!</p>
+                <div className="testimonial-author">
+                  <div className="author-avatar">R</div>
+                  <div>
+                    <strong>Rahul Sharma</strong>
+                    <span>Renter, Delhi</span>
+                  </div>
+                </div>
+                <div className="star-rating">⭐⭐⭐⭐⭐</div>
+              </div>
+              <div className="testimonial-card featured">
+                <div className="testimonial-quote">"</div>
+                <p>Maine apni garage list ki aur ab har mahine extra income ho rahi hai. Sahi Park is amazing!</p>
+                <div className="testimonial-author">
+                  <div className="author-avatar">P</div>
+                  <div>
+                    <strong>Priya Verma</strong>
+                    <span>Provider, Mumbai</span>
+                  </div>
+                </div>
+                <div className="star-rating">⭐⭐⭐⭐⭐</div>
+              </div>
+              <div className="testimonial-card">
+                <div className="testimonial-quote">"</div>
+                <p>Best parking app! Location-based search is super accurate. Highly recommend to everyone.</p>
+                <div className="testimonial-author">
+                  <div className="author-avatar">A</div>
+                  <div>
+                    <strong>Amit Kumar</strong>
+                    <span>Renter, Bangalore</span>
+                  </div>
+                </div>
+                <div className="star-rating">⭐⭐⭐⭐⭐</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!user && (
+        <div className="cta-section">
+          <div className="cta-content">
+            <h2>Ready to Park Smarter?</h2>
+            <p>Join thousands of users who trust Sahi Park every day</p>
+            <div className="cta-buttons">
+              <button className="cta-btn-primary" onClick={() => { setShowLogin(true); setLoginType('renter'); }}>🚗 Find Parking Now</button>
+              <button className="cta-btn-secondary" onClick={() => { setShowLogin(true); setLoginType('provider'); }}>💰 Earn by Listing</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!user && (
+        <footer className="site-footer">
+          <div className="footer-container">
+            <div className="footer-brand">
+              <h3>🅿️ Sahi Park</h3>
+              <p>Smart parking for smart people. Find, book, and manage parking spaces with ease.</p>
+              <div className="footer-social">
+                <span>📧 sahipark@gmail.com</span>
+                <span>📞 8853308557</span>
+              </div>
+            </div>
+            <div className="footer-links">
+              <h4>Quick Links</h4>
+              <ul>
+                <li><button onClick={() => setShowAbout(true)}>About Us</button></li>
+                <li><button onClick={() => setShowContact(true)}>Contact Us</button></li>
+                <li><button onClick={() => { setShowLogin(true); setLoginType('renter'); }}>Login as Renter</button></li>
+                <li><button onClick={() => { setShowLogin(true); setLoginType('provider'); }}>Login as Provider</button></li>
+              </ul>
+            </div>
+            <div className="footer-links">
+              <h4>Features</h4>
+              <ul>
+                <li><span>🔍 Real-time Search</span></li>
+                <li><span>📍 GPS Location</span></li>
+                <li><span>💳 Secure Payment</span></li>
+                <li><span>🔒 Safe & Trusted</span></li>
+              </ul>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p>© 2025 Sahi Park. All rights reserved. Made with ❤️ by Prince Gupta & Team</p>
+          </div>
+        </footer>
+      )}
+
       {showContact && (
         <div className="contact-modal">
           <div className="contact-content">

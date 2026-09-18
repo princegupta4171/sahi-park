@@ -1092,69 +1092,77 @@ function App() {
 
       {showLogin && !user && (
         <div className="auth-overlay" onClick={() => { setShowLogin(false); setShowRegister(false); }}>
-        <div className="auth-box" onClick={(e) => e.stopPropagation()}>
-          {showRegister ? (
-            <form onSubmit={handleRegister}>
-              <h3>Register as {loginType === 'provider' ? 'Provider' : 'Renter'}</h3>
-              <input
-                placeholder="Username"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                required
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-              />
-              <input
-                type="tel"
-                placeholder="Mobile Number"
-                value={formData.mobile}
-                onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                required
-              />
-              <input
-                type="email"
-                placeholder="Email Address"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-              />
-              <input
-                placeholder="Address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                required
-              />
-              <input type="hidden" value={loginType} />
-              <button type="submit">Register</button>
-              <button type="button" onClick={() => setShowRegister(false)}>Back to Login</button>
-            </form>
-          ) : (
-            <form onSubmit={handleLogin}>
-              <h3>Login as {loginType === 'provider' ? 'Provider' : 'Renter'}</h3>
-              <input
-                placeholder="Username"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                required
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-              />
-              <button type="submit">Login</button>
-              <button type="button" onClick={() => { setShowRegister(true); setFormData({ ...formData, userType: loginType }); }}>Register</button>
-              <button type="button" onClick={() => setShowLogin(false)}>Cancel</button>
-            </form>
-          )}
-        </div>
+          <div className="auth-box-3d" onClick={(e) => e.stopPropagation()}>
+
+            <div className="auth-car-scene">
+              <div className="auth-road">
+                <div className="road-line"></div>
+              </div>
+              <div className="auth-car">
+                <div className="car-body">
+                  <div className="car-roof"></div>
+                  <div className="car-windows">
+                    <div className="car-win car-win-l"></div>
+                    <div className="car-win car-win-r"></div>
+                  </div>
+                  <div className="car-light car-light-f"></div>
+                  <div className="car-light car-light-b"></div>
+                </div>
+                <div className="car-wheels">
+                  <div className="wheel wheel-f"><div className="wheel-hub"></div></div>
+                  <div className="wheel wheel-b"><div className="wheel-hub"></div></div>
+                </div>
+              </div>
+              <div className="auth-form-title">
+                <span className="auth-logo">🅿️</span>
+                <span>{showRegister ? 'Create Account' : `Welcome Back`}</span>
+              </div>
+            </div>
+
+            <div className="auth-form-body">
+              <div className="auth-type-badge">{loginType === 'provider' ? '🏠 Provider' : '🚗 Renter'}</div>
+              {showRegister ? (
+                <form onSubmit={handleRegister}>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">👤</span>
+                    <input placeholder="Username" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required />
+                  </div>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">🔒</span>
+                    <input type="password" placeholder="Password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
+                  </div>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">📱</span>
+                    <input type="tel" placeholder="Mobile Number" value={formData.mobile} onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} required />
+                  </div>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">📧</span>
+                    <input type="email" placeholder="Email Address" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+                  </div>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">📍</span>
+                    <input placeholder="Address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} required />
+                  </div>
+                  <button type="submit" className="auth-submit-btn">Create Account ✨</button>
+                  <button type="button" className="auth-switch-btn" onClick={() => setShowRegister(false)}>Already have account? Login</button>
+                </form>
+              ) : (
+                <form onSubmit={handleLogin}>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">👤</span>
+                    <input placeholder="Username" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required />
+                  </div>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">🔒</span>
+                    <input type="password" placeholder="Password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
+                  </div>
+                  <button type="submit" className="auth-submit-btn">Login 🚀</button>
+                  <button type="button" className="auth-switch-btn" onClick={() => { setShowRegister(true); setFormData({ ...formData, userType: loginType }); }}>New here? Register</button>
+                  <button type="button" className="auth-cancel-btn" onClick={() => setShowLogin(false)}>✕ Cancel</button>
+                </form>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

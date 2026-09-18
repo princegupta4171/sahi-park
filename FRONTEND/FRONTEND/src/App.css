@@ -3356,3 +3356,314 @@ body {
   width: 420px !important;
   max-width: 95vw !important;
 }
+
+/* ===== 3D AUTH FORM WITH ANIMATED CAR ===== */
+.auth-box-3d {
+  width: 420px;
+  max-width: 95vw;
+  background: rgba(10, 10, 30, 0.92);
+  border: 1px solid rgba(102,126,234,0.35);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.8), 0 0 60px rgba(102,126,234,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+  animation: authPop 0.45s cubic-bezier(0.34,1.56,0.64,1);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+@keyframes authPop {
+  from { opacity: 0; transform: scale(0.8) translateY(30px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ---- Car Scene Header ---- */
+.auth-car-scene {
+  background: linear-gradient(135deg, #0d1b4b 0%, #1a0533 100%);
+  padding: 22px 24px 16px;
+  position: relative;
+  overflow: hidden;
+  min-height: 110px;
+}
+
+.auth-car-scene::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(102,126,234,0.2) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+/* Road */
+.auth-road {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  background: #1a1a2e;
+  border-top: 2px solid #333;
+}
+
+.road-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(90deg, #fdd835 0px, #fdd835 20px, transparent 20px, transparent 40px);
+  transform: translateY(-50%);
+  animation: roadMove 0.6s linear infinite;
+}
+
+@keyframes roadMove {
+  from { background-position: 0 0; }
+  to   { background-position: -40px 0; }
+}
+
+/* Car */
+.auth-car {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: carDrive 0s linear infinite;
+  filter: drop-shadow(0 4px 12px rgba(102,126,234,0.6));
+}
+
+.car-body {
+  width: 90px;
+  height: 32px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 8px 8px 4px 4px;
+  position: relative;
+}
+
+.car-roof {
+  position: absolute;
+  top: -18px;
+  left: 14px;
+  width: 52px;
+  height: 20px;
+  background: linear-gradient(135deg, #a78bfa, #667eea);
+  border-radius: 8px 8px 0 0;
+}
+
+.car-windows {
+  position: absolute;
+  top: -16px;
+  left: 16px;
+  width: 48px;
+  height: 14px;
+  display: flex;
+  gap: 4px;
+}
+
+.car-win {
+  flex: 1;
+  background: rgba(180,220,255,0.7);
+  border-radius: 3px 3px 0 0;
+}
+
+.car-light {
+  position: absolute;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.car-light-f {
+  right: -3px;
+  background: #fff9c4;
+  box-shadow: 0 0 8px 3px rgba(255,249,196,0.8);
+  animation: headlight 1s ease-in-out infinite alternate;
+}
+
+.car-light-b {
+  left: -3px;
+  background: #ef5350;
+  box-shadow: 0 0 6px 2px rgba(239,83,80,0.7);
+}
+
+@keyframes headlight {
+  from { box-shadow: 0 0 8px 3px rgba(255,249,196,0.8); }
+  to   { box-shadow: 0 0 16px 6px rgba(255,249,196,0.5); }
+}
+
+.car-wheels {
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.wheel {
+  width: 18px;
+  height: 18px;
+  background: #1a1a2e;
+  border: 3px solid #555;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: spin 0.4s linear infinite;
+}
+
+.wheel-hub {
+  width: 6px;
+  height: 6px;
+  background: #888;
+  border-radius: 50%;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Title */
+.auth-form-title {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.auth-logo {
+  font-size: 26px;
+}
+
+/* ---- Form Body ---- */
+.auth-form-body {
+  padding: 24px 28px 28px;
+}
+
+.auth-type-badge {
+  display: inline-block;
+  background: rgba(102,126,234,0.2);
+  border: 1px solid rgba(102,126,234,0.4);
+  color: #a78bfa;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+
+.auth-form-body form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-input-group {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 0 14px;
+  transition: border 0.3s, box-shadow 0.3s;
+}
+
+.auth-input-group:focus-within {
+  border-color: rgba(102,126,234,0.7);
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+  background: rgba(102,126,234,0.08);
+}
+
+.auth-input-icon {
+  font-size: 16px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.auth-input-group input {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: white !important;
+  font-size: 14px;
+  padding: 13px 0;
+  width: 100%;
+}
+
+.auth-input-group input::placeholder {
+  color: rgba(255,255,255,0.35);
+}
+
+.auth-submit-btn {
+  margin-top: 6px;
+  padding: 14px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.4s;
+}
+
+.auth-submit-btn:hover::before { left: 100%; }
+
+.auth-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(102,126,234,0.6);
+}
+
+.auth-switch-btn {
+  padding: 11px;
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.auth-switch-btn:hover {
+  background: rgba(102,126,234,0.15);
+  color: #a78bfa;
+  border-color: rgba(102,126,234,0.4);
+}
+
+.auth-cancel-btn {
+  padding: 9px;
+  background: transparent;
+  color: rgba(255,255,255,0.3);
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.auth-cancel-btn:hover { color: #ef5350; }
+
+@media (max-width: 480px) {
+  .auth-box-3d { width: 95vw; }
+  .auth-form-body { padding: 18px 18px 22px; }
+}

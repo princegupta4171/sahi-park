@@ -468,9 +468,9 @@ function App() {
           <div className="header-content">
             <h1>🅿️ Sahi Park</h1>
             <nav className="nav-buttons">
-              <button onClick={() => {}}>Home</button>
+              <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Home</button>
               <button onClick={() => setShowAbout(true)}>About Us</button>
-              <button onClick={() => {}}>Find Your Space</button>
+              <button onClick={() => { if (user) { handleFindSpace(); } else { setShowLogin(true); setLoginType('renter'); } }}>Find Your Space</button>
               <button onClick={() => setShowContact(true)}>Contact Us</button>
               {!user && (
                 <>
@@ -488,6 +488,10 @@ function App() {
             <div className="hero-text">
               <h2 className="hero-title">Find Your Perfect Parking Space</h2>
               <p className="hero-subtitle">Smart, Easy, Convenient</p>
+              <div className="hero-cta-btns">
+                <button className="hero-btn-renter" onClick={() => { setShowLogin(true); setLoginType('renter'); }}>🚗 Find Parking</button>
+                <button className="hero-btn-provider" onClick={() => { setShowLogin(true); setLoginType('provider'); }}>💰 List Your Space</button>
+              </div>
             </div>
             <div className="hero-images">
               <img src="/1.jpeg" alt="Parking" className="hero-img img-1" />
@@ -507,6 +511,7 @@ function App() {
               <p className="info-subtitle">Need of parking?</p>
               <p>Our app can help you</p>
               <p>Discover parking spaces location near you.</p>
+              <button className="info-explore-btn" onClick={() => { setShowLogin(true); setLoginType('renter'); }}>🔍 Explore Now →</button>
             </div>
           </div>
         </div>

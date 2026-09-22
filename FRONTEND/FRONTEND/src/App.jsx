@@ -735,8 +735,8 @@ function App() {
       )}
 
       {showContact && (
-        <div className="contact-modal">
-          <div className="contact-content">
+        <div className="auth-overlay" onClick={() => setShowContact(false)}>
+          <div className="contact-content" onClick={(e) => e.stopPropagation()}>
             <button className="close-contact" onClick={() => setShowContact(false)}>✕</button>
             <h2>Contact Us</h2>
             <div className="contact-info-grid">
@@ -767,8 +767,8 @@ function App() {
       )}
 
       {showAbout && (
-        <div className="about-modal">
-          <div className="about-content">
+        <div className="auth-overlay" onClick={() => setShowAbout(false)}>
+          <div className="about-content" onClick={(e) => e.stopPropagation()}>
             <button className="close-about" onClick={() => setShowAbout(false)}>✕</button>
             <h2>About Sahi Park</h2>
             <div className="about-text">
@@ -795,8 +795,8 @@ function App() {
       )}
 
       {showAdmin && (
-        <div className="admin-panel">
-          <div className="admin-content">
+        <div className="auth-overlay" onClick={() => { setShowAdmin(false); setIsAdminAuthenticated(false); setAdminPassword(''); }}>
+          <div className="admin-content" onClick={(e) => e.stopPropagation()}>
             {!isAdminAuthenticated ? (
               <div className="admin-login">
                 <h2>🔒 Admin Login</h2>

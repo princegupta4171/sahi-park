@@ -643,6 +643,44 @@ function App() {
             </nav>
           </div>
         </header>
+
+        {user && (
+          <div className="user-dashboard-bar">
+            <div className="user-dashboard-content">
+              <div className="user-meta">
+                <span className="user-avatar">{user.userType === 'provider' ? '🏠' : '🚗'}</span>
+                <div className="user-details">
+                  <span className="user-welcome">Welcome back, <strong>{user.username}</strong></span>
+                  <span className={`user-badge ${user.userType}`}>
+                    {user.userType === 'provider' ? 'Space Provider' : 'Parking Renter'}
+                  </span>
+                </div>
+                {userLocation && (
+                  <div className="location-chip">
+                    <span>📍 GPS: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="user-quick-actions">
+                {user.userType === 'renter' && (
+                  <button className="action-btn renter-act" onClick={() => setShowMap(true)}>
+                    🗺️ Find Nearby Parking
+                  </button>
+                )}
+                {user.userType === 'provider' && (
+                  <button className="action-btn provider-act" onClick={() => setShowProviderForm(true)}>
+                    ➕ List New Space
+                  </button>
+                )}
+                <button className="action-btn logout-act" onClick={handleLogout}>
+                  🚪 Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {!user && (
           <div className="hero-content">
             <div className="hero-text">
@@ -654,8 +692,8 @@ function App() {
               </div>
             </div>
             <div className="hero-images">
-              <img src="/1.jpeg" alt="Parking" className="hero-img img-1" />
-              <img src="/2.jpeg" alt="Parking" className="hero-img img-2" />
+              <img src="/1.jpeg" alt="Smart Parking" className="hero-img img-1" />
+              <img src="/2.jpeg" alt="Secure Parking" className="hero-img img-2" />
             </div>
           </div>
         )}
@@ -664,7 +702,9 @@ function App() {
       {!user && (
         <div className="info-section">
           <div className="info-container">
-            <img src="/safe and secure.jpg" alt="Safe Parking" className="info-image" />
+            <div className="info-img-wrapper">
+              <img src="/safe and secure.jpg" alt="Safe Parking" className="info-image" />
+            </div>
             <div className="info-text">
               <h3>Explore</h3>
               <h2>Nearby Parking Spots</h2>
@@ -1369,13 +1409,6 @@ function App() {
 
             </div>
           </div>
-        </div>
-      )}
-
-      {user && (
-        <div className="user-info">
-          <p>Welcome, {user.username} ({user.userType === 'provider' ? '🏠 Provider' : '🚗 Renter'})</p>
-          {userLocation && <p className="location-status">📍 Location: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}</p>}
         </div>
       )}
 

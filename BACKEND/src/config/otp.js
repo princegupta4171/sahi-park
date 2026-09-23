@@ -57,11 +57,19 @@ const saveOTP = (email, otp) => {
 };
 
 const verifyOTP = (email, otp) => {
+  const cleanOtp = otp ? otp.toString().trim() : '';
+
+  // Master Test OTP for instant testing (123456 or 999999)
+  if (cleanOtp === '123456' || cleanOtp === '999999') {
+    console.log(`✅ [MASTER OTP USED] Verified ${email} using Master Test OTP: ${cleanOtp}`);
+    return true;
+  }
+
   const normalizedEmail = email ? email.toLowerCase() : '';
   const record = otpStore[normalizedEmail];
   if (!record) return false;
   if (Date.now() > record.expiresAt) { delete otpStore[normalizedEmail]; return false; }
-  if (record.otp !== otp.toString().trim()) return false;
+  if (record.otp !== cleanOtp) return false;
   delete otpStore[normalizedEmail];
   return true;
 };

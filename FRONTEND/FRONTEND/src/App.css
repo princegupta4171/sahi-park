@@ -3353,7 +3353,7 @@ body {
   align-items: center !important;
   justify-content: center !important;
   backdrop-filter: blur(5px) !important;
-  overflow: hidden !important;
+  overflow-y: auto !important;
   margin: 0 !important;
   padding: 0 !important;
 }

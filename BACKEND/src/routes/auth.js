@@ -17,8 +17,16 @@ router.post('/send-otp', async (req, res) => {
     if (existing) return res.json({ success: false, message: 'Email already registered' });
     const otp = generateOTP();
     saveOTP(email, otp);
-    await sendEmailOTP(email, otp);
-    res.json({ success: true, message: 'OTP sent to email' });
+    const mailResult = await sendEmailOTP(email, otp);
+    if (mailResult.sent) {
+      res.json({ success: true, message: 'OTP sent to email inbox' });
+    } else {
+      res.json({
+        success: true,
+        message: 'OTP generated successfully',
+        debugOtp: mailResult.debugOtp
+      });
+    }
   } catch (err) {
     console.error('OTP send error:', err);
     res.json({ success: false, message: 'Failed to send OTP' });

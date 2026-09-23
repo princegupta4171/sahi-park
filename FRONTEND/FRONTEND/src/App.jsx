@@ -59,12 +59,11 @@ function App() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
-  // Lock body scroll when any modal is open
+  // Allow body scroll at all times (scroll lock removed)
   useEffect(() => {
-    const anyOpen = showLogin || showAbout || showContact || showAdmin || showProviderForm || showLocationPicker || showMap || showPayment || showContactForm;
-    document.body.style.overflow = anyOpen ? 'hidden' : '';
+    document.body.style.overflow = '';
     return () => { document.body.style.overflow = ''; };
-  }, [showLogin, showAbout, showContact, showAdmin, showProviderForm, showLocationPicker, showMap, showPayment, showContactForm]);
+  }, []);
 
   useEffect(() => {
     if (showMap && user?.userType === 'provider') {
@@ -211,15 +210,27 @@ function App() {
       alert('Please fill all fields'); return;
     }
     setOtpLoading(true);
-    const res = await fetch(`${API_BASE_URL}/send-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: formData.email })
-    });
-    const data = await res.json();
-    setOtpLoading(false);
-    if (data.success) { setOtpStep(true); setOtpSent(true); }
-    else alert(data.message);
+    try {
+      const res = await fetch(`${API_BASE_URL}/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email })
+      });
+      const data = await res.json();
+      setOtpLoading(false);
+      if (data.success) {
+        setOtpStep(true);
+        setOtpSent(true);
+        if (data.debugOtp) {
+          alert(`📩 OTP: ${data.debugOtp}\n\n(Demo Mode: EMAIL_PASS not set in backend .env. Set your Gmail App Password to send actual emails)`);
+        } else {
+          alert('📩 OTP sent to your email address!');
+        }
+      } else alert(data.message);
+    } catch (err) {
+      setOtpLoading(false);
+      alert('Failed to connect to backend server.');
+    }
   };
 
   const handleRegister = async (e) => {

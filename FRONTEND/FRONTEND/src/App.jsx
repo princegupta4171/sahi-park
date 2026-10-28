@@ -13,6 +13,7 @@ function App() {
       return saved ? JSON.parse(saved) : null;
     } catch { return null; }
   });
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem('sahi_park_token') || null);
   const [showRegister, setShowRegister] = useState(false);
   const [spaces, setSpaces] = useState([]);
   const [formData, setFormData] = useState({ username: '', password: '', userType: 'renter' });
@@ -74,6 +75,11 @@ function App() {
     if (user) localStorage.setItem('sahi_park_user', JSON.stringify(user));
     else localStorage.removeItem('sahi_park_user');
   }, [user]);
+
+  useEffect(() => {
+    if (authToken) localStorage.setItem('sahi_park_token', authToken);
+    else localStorage.removeItem('sahi_park_token');
+  }, [authToken]);
 
   useEffect(() => {
     if (userLocation) localStorage.setItem('sahi_park_user_location', JSON.stringify(userLocation));
@@ -249,6 +255,7 @@ function App() {
       if (!res.ok) throw new Error('Server error');
       const data = await res.json();
       if (data.success) {
+        if (data.token) setAuthToken(data.token);
         setUser({ ...data, userType: data.userType || loginType });
         setFormData({ username: '', password: '', userType: 'renter' });
         setShowLogin(false);
@@ -262,6 +269,7 @@ function App() {
 
   const handleLogout = () => {
     setUser(null);
+    setAuthToken(null);
     setUserLocation(null);
     setSpaces([]);
     setShowLogin(false);
@@ -356,6 +364,7 @@ function App() {
           email: formData.email,
           address: formData.address
         };
+        if (data.token) setAuthToken(data.token);
         setUser(newUser);
         setShowRegister(false);
         setShowLogin(false);

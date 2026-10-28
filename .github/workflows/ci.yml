@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend — Install & Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: BACKEND
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: BACKEND/package-lock.json
+      - run: npm ci
+      - run: node -e "require('./src/app')" && echo "App loads OK"
+        env:
+          MONGODB_URI: mongodb://localhost:27017/test
+          JWT_SECRET: ci_test_secret
+          ALLOWED_ORIGINS: http://localhost:5173
+
+  frontend:
+    name: Frontend — Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FRONTEND/FRONTEND
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: FRONTEND/FRONTEND/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_API_URL: http://localhost:3000

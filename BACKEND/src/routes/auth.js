@@ -4,11 +4,14 @@ const { generateOTP, saveOTP, verifyOTP, sendEmailOTP } = require('../config/otp
 const router = express.Router();
 
 router.get('/users', async (req, res) => {
-  const users = await User.find().select('username password userType mobile email address createdAt');
-  res.json(users);
+  try {
+    const users = await User.find().select('username userType mobile email address createdAt');
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
-// Send OTP to email
 router.post('/send-otp', async (req, res) => {
   try {
     const { email } = req.body;
@@ -17,47 +20,57 @@ router.post('/send-otp', async (req, res) => {
     if (existing) return res.json({ success: false, message: 'Email already registered' });
     const otp = generateOTP();
     saveOTP(email, otp);
-    const mailResult = await sendEmailOTP(email, otp);
-    if (mailResult.sent) {
-      res.json({ success: true, message: 'OTP sent to email inbox' });
-    } else {
-      res.json({
-        success: true,
-        message: 'OTP generated successfully',
-        debugOtp: mailResult.debugOtp
-      });
-    }
+    await sendEmailOTP(email, otp);
+    res.json({ success: true, message: 'OTP sent to email' });
   } catch (err) {
     console.error('OTP send error:', err);
-    res.json({ success: false, message: 'Failed to send OTP' });
+    res.json({ success: false, message: 'Failed to send OTP. Check email configuration.' });
   }
 });
 
-// Verify OTP
 router.post('/verify-otp', (req, res) => {
-  const { email, otp } = req.body;
-  const valid = verifyOTP(email, otp);
-  res.json({ success: valid, message: valid ? 'OTP verified' : 'Invalid or expired OTP' });
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.json({ success: false, message: 'Email and OTP required' });
+    const valid = verifyOTP(email, otp);
+    res.json({ success: valid, message: valid ? 'OTP verified' : 'Invalid or expired OTP' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
 router.post('/register', async (req, res) => {
   try {
-    const existing = await User.findOne({ username: req.body.username });
-    if (existing) return res.json({ success: false, message: 'Username already taken' });
-    const user = new User(req.body);
+    const { username, password, userType, mobile, email, address } = req.body;
+    if (!username || !password || !userType || !mobile || !email || !address) {
+      return res.json({ success: false, message: 'All fields are required' });
+    }
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) return res.json({ success: false, message: 'Username already taken' });
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) return res.json({ success: false, message: 'Email already registered' });
+    const user = new User({ username, password, userType, mobile, email, address });
     await user.save();
     res.json({ success: true, userId: user._id });
   } catch (err) {
-    res.json({ success: false, message: 'Registration failed' });
+    console.error('Register error:', err);
+    res.json({ success: false, message: 'Registration failed. Please try again.' });
   }
 });
 
 router.post('/login', async (req, res) => {
-  const user = await User.findOne({ username: req.body.username, password: req.body.password });
-  if (user) {
-    res.json({ success: true, userId: user._id, username: user.username, userType: user.userType, mobile: user.mobile, email: user.email, address: user.address });
-  } else {
-    res.json({ success: false, message: 'Invalid username or password' });
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) return res.json({ success: false, message: 'Username and password required' });
+    const user = await User.findOne({ username, password });
+    if (user) {
+      res.json({ success: true, userId: user._id, username: user.username, userType: user.userType, mobile: user.mobile, email: user.email, address: user.address });
+    } else {
+      res.json({ success: false, message: 'Invalid username or password' });
+    }
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

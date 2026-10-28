@@ -153,16 +153,21 @@ function App() {
   };
 
   const loadSpaces = async () => {
-    const res = await fetch(`${API_BASE_URL}/spaces`);
-    const data = await res.json();
-    setSpaces(data);
+    try {
+      const res = await fetch(`${API_BASE_URL}/spaces`);
+      if (!res.ok) throw new Error('Failed to fetch spaces');
+      const data = await res.json();
+      setSpaces(data);
+    } catch (err) {
+      console.error('loadSpaces error:', err);
+    }
   };
 
   const loadUsers = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/users`);
+      if (!res.ok) throw new Error('Failed to fetch users');
       const data = await res.json();
-      console.log('Users loaded:', data);
       setAllUsers(data);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -173,8 +178,8 @@ function App() {
   const loadAllParkingSpaces = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/spaces`);
+      if (!res.ok) throw new Error('Failed to fetch parking spaces');
       const data = await res.json();
-      console.log('Parking spaces loaded:', data);
       setAllParkingSpaces(data);
     } catch (error) {
       console.error('Error loading parking spaces:', error);
@@ -200,52 +205,58 @@ function App() {
   }, [user]);
 
   const getUserLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.error('Location error:', error);
-          alert('Location access denied. Please enable location in browser settings.');
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    } else {
+    if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser');
+      return;
     }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+      },
+      (error) => {
+        console.error('Location error:', error);
+        if (error.code === 1) alert('Location permission denied. Please enable location in browser settings.');
+        else if (error.code === 2) alert('Location unavailable. Please try again.');
+        else alert('Location request timed out. Please try again.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
   };
 
   const findNearbySpaces = async (lat, lng) => {
-    const res = await fetch(`${API_BASE_URL}/nearby-spaces?lat=${lat}&lng=${lng}`);
-    const data = await res.json();
-    setNearbySpaces(data);
+    try {
+      const res = await fetch(`${API_BASE_URL}/nearby-spaces?lat=${lat}&lng=${lng}`);
+      if (!res.ok) throw new Error('Failed to fetch nearby spaces');
+      const data = await res.json();
+      setNearbySpaces(data);
+    } catch (err) {
+      console.error('findNearbySpaces error:', err);
+      alert('Could not fetch nearby parking spaces. Please try again.');
+    }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const res = await fetch(`${API_BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: formData.username, password: formData.password })
-    });
-    const data = await res.json();
-    console.log('Login response:', data);
-    if (data.success) {
-      console.log('Setting user with userType:', data.userType);
-      const userData = { ...data, userType: data.userType || loginType };
-      setUser(userData);
-      setFormData({ username: '', password: '', userType: 'renter' });
-      setShowLogin(false);
-    } else {
-      alert(data.message);
+    try {
+      const res = await fetch(`${API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: formData.username, password: formData.password })
+      });
+      if (!res.ok) throw new Error('Server error');
+      const data = await res.json();
+      if (data.success) {
+        setUser({ ...data, userType: data.userType || loginType });
+        setFormData({ username: '', password: '', userType: 'renter' });
+        setShowLogin(false);
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      alert('Login failed. Please check if server is running.');
     }
   };
 
@@ -563,51 +574,50 @@ function App() {
   };
 
   const handlePayment = async () => {
-    const totalAmount = selectedSpace.pricePerHour * bookingDuration;
-    const res = await fetch(`${API_BASE_URL}/book`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        spaceId: selectedSpace._id, 
-        renterId: user.userId, 
-        renterName: user.username,
-        duration: bookingDuration,
-        totalAmount
-      })
-    });
-    const data = await res.json();
-    if (data.success) {
-      const payRes = await fetch(`${API_BASE_URL}/payment`, {
+    try {
+      const totalAmount = selectedSpace.pricePerHour * bookingDuration;
+      const res = await fetch(`${API_BASE_URL}/book`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spaceId: selectedSpace._id })
+        body: JSON.stringify({
+          spaceId: selectedSpace._id,
+          renterId: user.userId,
+          renterName: user.username,
+          duration: bookingDuration,
+          totalAmount
+        })
       });
-      const payData = await payRes.json();
-      if (payData.success) {
-        loadSpaces();
-        setShowMap(false);
-        setShowPayment(false);
-        setSelectedSpace(null);
-        setBookingDuration(1);
-        alert(`Payment successful! ₹${totalAmount} paid for ${bookingDuration} hour(s)`);
+      const data = await res.json();
+      if (data.success) {
+        const payRes = await fetch(`${API_BASE_URL}/payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ spaceId: selectedSpace._id })
+        });
+        const payData = await payRes.json();
+        if (payData.success) {
+          loadSpaces();
+          setShowMap(false);
+          setShowPayment(false);
+          setSelectedSpace(null);
+          setBookingDuration(1);
+          alert(`Payment successful! ₹${totalAmount} paid for ${bookingDuration} hour(s)`);
+        }
+      } else {
+        alert(data.message);
       }
-    } else {
-      alert(data.message);
+    } catch (err) {
+      alert('Payment failed. Please try again.');
     }
   };
 
   const handleReleaseSpace = async (spaceId) => {
-    if (!window.confirm('Are you sure you want to release this parking space?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to release this parking space?')) return;
     try {
       const res = await fetch(`${API_BASE_URL}/release`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          spaceId, 
-          renterId: user.userId 
-        })
+        body: JSON.stringify({ spaceId, renterId: user.userId })
       });
       const data = await res.json();
       if (data.success) {
@@ -617,7 +627,6 @@ function App() {
         alert(data.message || 'Failed to release parking space.');
       }
     } catch (error) {
-      console.error('Error releasing parking space:', error);
       alert('An error occurred. Please try again.');
     }
   };

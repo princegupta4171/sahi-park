@@ -151,11 +151,14 @@ router.post('/payment', paymentHandler);
 // ── Release space ──────────────────────────────────────────────────────────────
 async function releaseHandler(req, res) {
   try {
-    const { spaceId, renterId } = req.body;
+    const { spaceId, renterId, providerId } = req.body;
     const query = spaceId ? { _id: spaceId } : { spaceNumber: req.body.spaceNumber };
-    if (renterId) query.renterId = renterId;
+    // Provider can force release their own space, renter can release their booking
+    if (providerId) query.providerId = providerId;
+    else if (renterId) query.renterId = renterId;
     const space = await Parking.findOne(query);
-    if (!space) return res.json({ success: false, message: 'Parking space not found or not rented by you' });
+    if (!space) return res.json({ success: false, message: 'Parking space not found or not authorized' });
+    if (!space.renterId) return res.json({ success: false, message: 'Space is already available' });
     const renterName = space.renterName;
     space.renterId = null; space.renterName = null; space.isAvailable = true;
     space.isPaid = false; space.bookingDuration = 0; space.totalAmount = 0;

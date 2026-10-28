@@ -623,10 +623,13 @@ function App() {
   const handleReleaseSpace = async (spaceId) => {
     if (!window.confirm('Are you sure you want to release this parking space?')) return;
     try {
+      const body = user.userType === 'provider'
+        ? { spaceId, providerId: user.userId }
+        : { spaceId, renterId: user.userId };
       const res = await fetch(`${API_BASE_URL}/release`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spaceId, renterId: user.userId })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (data.success) {

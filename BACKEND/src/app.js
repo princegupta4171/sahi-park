@@ -4,18 +4,11 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-const Sentry = require('@sentry/node');
 
 const authRoutes = require('./routes/auth');
 const parkingRoutes = require('./routes/parking');
 
 const app = express();
-
-// ── Sentry (error tracking) ────────────────────────────────────────────────────
-if (process.env.SENTRY_DSN) {
-  Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.2 });
-  app.use(Sentry.Handlers.requestHandler());
-}
 
 // ── Security headers ───────────────────────────────────────────────────────────
 app.use(helmet());
@@ -62,11 +55,6 @@ app.use('/api/', apiLimiter);
 // ── Routes ─────────────────────────────────────────────────────────────────────
 app.use(authRoutes);
 app.use(parkingRoutes);
-
-// ── Sentry error handler ───────────────────────────────────────────────────────
-if (process.env.SENTRY_DSN) {
-  app.use(Sentry.Handlers.errorHandler());
-}
 
 // ── 404 handler ────────────────────────────────────────────────────────────────
 app.use((req, res) => {

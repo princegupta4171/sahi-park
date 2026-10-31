@@ -7,8 +7,8 @@ const MASTER_OTP = '123456';
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'jankiramgupta5@gmail.com',
-    pass: 'mluxyysaliqlgydc'
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
@@ -16,7 +16,7 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 const sendEmailOTP = async (email, otp) => {
   await transporter.sendMail({
-    from: '"Sahi Park 🅿️" <jankiramgupta5@gmail.com>',
+    from: `"Sahi Park 🅿️" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: 'Your Sahi Park OTP Code',
     html: `

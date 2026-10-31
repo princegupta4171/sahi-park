@@ -4,19 +4,30 @@ const https = require('https');
 const otpStore = {};
 const MASTER_OTP = '123456';
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const sendEmailOTP = async (email, otp) => {
+  const emailUser = process.env.EMAIL_USER;
+  const emailPass = process.env.EMAIL_PASS;
+
+  console.log('sendEmailOTP called — EMAIL_USER:', emailUser ? emailUser : 'NOT SET');
+
+  if (!emailUser || !emailPass) {
+    console.error('EMAIL_USER or EMAIL_PASS not set in environment!');
+    throw new Error('Email credentials not configured');
+  }
+
+  // Create transporter lazily (NOT at module load) so env vars are always available
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: emailUser,
+      pass: emailPass
+    }
+  });
+
   await transporter.sendMail({
-    from: `"Sahi Park 🅿️" <${process.env.EMAIL_USER}>`,
+    from: `"Sahi Park 🅿️" <${emailUser}>`,
     to: email,
     subject: 'Your Sahi Park OTP Code',
     html: `
@@ -35,6 +46,7 @@ const sendEmailOTP = async (email, otp) => {
       </div>
     `
   });
+  console.log('Email OTP sent successfully to:', email);
 };
 
 const sendSmsOTP = (mobile, otp) => {

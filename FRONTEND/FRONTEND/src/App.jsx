@@ -293,7 +293,7 @@ function App() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for email
 
       const res = await fetch(`${API_BASE_URL}/send-otp`, {
         method: 'POST',

@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const { generateOTP, saveOTP, verifyOTP, sendEmailOTP } = require('../config/otp');
+const { generateOTP, saveOTP, verifyOTP, sendEmailOTP, sendSmsOTP } = require('../config/otp');
 const { generateToken, verifyToken } = require('../middleware/auth');
 const router = express.Router();
 
@@ -35,8 +35,14 @@ router.post('/api/v1/send-otp', async (req, res) => {
     if (existing) return res.json({ success: false, message: 'Email already registered' });
     const otp = generateOTP();
     saveOTP(email, otp);
-    await sendEmailOTP(email, otp);
-    res.json({ success: true, message: 'OTP sent to email' });
+    const results = await Promise.allSettled([
+      sendEmailOTP(email, otp),
+      req.body.mobile ? sendSmsOTP(req.body.mobile, otp) : Promise.resolve(false)
+    ]);
+    const emailSent = results[0].status === 'fulfilled';
+    const smsSent = results[1].value === true;
+    console.log('OTP send results — email:', emailSent, '| sms:', smsSent);
+    res.json({ success: true, message: `OTP sent${emailSent ? ' to email' : ''}${smsSent ? ' & SMS' : ''}` });
   } catch (err) {
     res.json({ success: false, message: 'Failed to send OTP. Check email configuration.' });
   }

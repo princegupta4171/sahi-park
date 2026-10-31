@@ -298,7 +298,7 @@ function App() {
       const res = await fetch(`${API_BASE_URL}/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email }),
+        body: JSON.stringify({ email: formData.email, mobile: formData.mobile }),
         signal: controller.signal
       });
       clearTimeout(timeoutId);

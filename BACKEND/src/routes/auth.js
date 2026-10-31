@@ -8,6 +8,30 @@ router.get('/users', async (req, res) => {
   res.json(users);
 });
 
+// ── Debug: Test email config ───────────────────────────────────────────────────
+router.get('/debug-email', async (req, res) => {
+  const emailUser = process.env.EMAIL_USER;
+  const emailPass = process.env.EMAIL_PASS;
+  const fast2sms = process.env.FAST2SMS_API_KEY;
+
+  if (!emailUser || !emailPass) {
+    return res.json({
+      success: false,
+      message: 'Email env vars missing',
+      EMAIL_USER: emailUser || 'NOT SET',
+      EMAIL_PASS: emailPass ? '***set***' : 'NOT SET',
+      FAST2SMS: fast2sms ? '***set***' : 'NOT SET'
+    });
+  }
+
+  try {
+    await sendEmailOTP(emailUser, '123456'); // send test OTP to yourself
+    res.json({ success: true, message: `Test email sent to ${emailUser}` });
+  } catch (err) {
+    res.json({ success: false, error: err.message, code: err.code });
+  }
+});
+
 router.post('/send-otp', async (req, res) => {
   try {
     const { email, mobile } = req.body;
@@ -22,11 +46,20 @@ router.post('/send-otp', async (req, res) => {
     ]);
     const emailSent = results[0].status === 'fulfilled';
     const smsSent = results[1].value === true;
+    // Log error details if email failed
+    if (!emailSent) {
+      console.error('Email failed:', results[0].reason?.message || results[0].reason);
+    }
     console.log('OTP send — email:', emailSent, '| sms:', smsSent, '| otp:', otp);
-    res.json({ success: true, message: `OTP sent${emailSent ? ' to email' : ''}${smsSent ? ' & SMS' : ''}` });
+    res.json({
+      success: true,
+      message: `OTP sent${emailSent ? ' to email' : ' (email failed, use Master OTP)'}${smsSent ? ' & SMS' : ''}`,
+      emailSent,
+      smsSent
+    });
   } catch (err) {
     console.error('OTP send error:', err);
-    res.json({ success: false, message: 'Failed to send OTP' });
+    res.json({ success: false, message: 'Failed to send OTP', error: err.message });
   }
 });
 

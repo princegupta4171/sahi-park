@@ -16,7 +16,7 @@ const sendEmailOTP = async (email, otp) => {
   }
 
   const payload = JSON.stringify({
-    sender: { name: 'Sahi Park', email: 'jankiramgupta5@gmail.com' },
+    sender: { name: 'Sahi Park', email: 'princegupta4171@gmail.com' },
     to: [{ email }],
     subject: 'Your Sahi Park OTP Code',
     htmlContent: `

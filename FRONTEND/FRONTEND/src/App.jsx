@@ -1080,7 +1080,7 @@ function App() {
                               <td>{u.email}</td>
                               <td>{u.address}</td>
                               <td><span className={`badge ${u.userType}`}>{u.userType}</span></td>
-                              <td>{new Date(u.createdAt).toLocaleString()}</td>
+                              <td>{new Date(u.createdAt).toLocaleString()}</td><td><button style={{padding:"5px 12px,background:#e53935,color:white,border:none,borderRadius:6px,cursor:pointer,fontWeight:bold}} onClick={async () => { if(!window.confirm(Delete user +u.username+?)) return; await fetch(API_BASE_URL+/admin/user/+u._id,{method:DELETE}); loadUsers(); }}>Delete</button></td>
                             </tr>
                           ))}
                         </tbody>
@@ -1115,14 +1115,14 @@ function App() {
                               <td>{space.providerName}</td>
                               <td>{space.address}</td>
                               <td>{space.mobile}</td>
-                              <td>₹{space.pricePerHour}</td>
+                              <td><input type="number defaultValue={space.pricePerHour} style={{width:70px,padding:4px,border:1px solid #ddd,borderRadius:4px}} onBlur={async (e) => { const p = e.target.value; if(p && p !== String(space.pricePerHour)){ await fetch(API_BASE_URL+/admin/update-price/+space._id,{method:POST,headers:{Content-Type:application/json},body:JSON.stringify({pricePerHour:p})}); loadAllParkingSpaces(); }}} /></td>
                               <td>{space.totalSpaces || 1}</td>
                               <td><span className={`badge ${space.isAvailable ? 'available' : 'occupied'}`}>{space.isAvailable ? 'Available' : 'Occupied'}</span></td>
                               <td>{space.latitude?.toFixed(4)}, {space.longitude?.toFixed(4)}</td>
                             </tr>
                           ))}
-                        </tbody>
-                      </table>
+ <td>{space.latitude?.toFixed(4)}, {space.longitude?.toFixed(4)}</td>
+ <td style={{display:flex,gap:6px,flexWrap:wrap}}>{!space.isAvailable && (<button style={{padding:5px 10px,background:#ff9800,color:white,border:none,borderRadius:6px,cursor:pointer,fontWeight:bold,fontSize:12px}} onClick={async () => { if(!window.confirm(Force release?)) return; await fetch(API_BASE_URL+/admin/release/+space._id,{method:POST}); loadAllParkingSpaces(); }}>Release</button>)}<button style={{padding:5px 10px,background:#e53935,color:white,border:none,borderRadius:6px,cursor:pointer,fontWeight:bold,fontSize:12px}} onClick={async () => { if(!window.confirm(Delete space?)) return; await fetch(API_BASE_URL+/admin/space/+space._id,{method:DELETE}); loadAllParkingSpaces(); }}>Delete</button></td>
                     )}
                   </div>
                 </div>

@@ -1399,9 +1399,7 @@ function App() {
               {showRegister && otpStep && (
                 <form onSubmit={handleRegister}>
                   <p className="otp-hint">📧 OTP sent to <strong>{formData.email}</strong></p>
-                  <p style={{ fontSize: '12px', color: '#a78bfa', margin: '-5px 0 12px 0', textAlign: 'center' }}>
-                    💡 Tip: If email not received, use Master Test OTP: <strong>123456</strong>
-                  </p>
+
                   <div className="auth-input-group otp-input-group">
                     <span className="auth-input-icon">🔢</span>
                     <input
@@ -1412,15 +1410,7 @@ function App() {
                       required
                     />
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                    <button
-                      type="button"
-                      style={{ background: 'rgba(255,255,255,0.12)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', width: '100%', fontWeight: 'bold' }}
-                      onClick={() => setOtpValue('123456')}
-                    >
-                      ⚡ Auto-Fill Test OTP (123456)
-                    </button>
-                  </div>
+
                   <button type="submit" className="auth-submit-btn" disabled={otpLoading}>
                     {otpLoading ? 'Verifying...' : '✅ Verify & Register'}
                   </button>

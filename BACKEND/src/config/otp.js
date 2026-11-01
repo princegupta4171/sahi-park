@@ -1,4 +1,4 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 const https = require('https');
 
 const otpStore = {};
@@ -7,44 +7,53 @@ const MASTER_OTP = '123456';
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const sendEmailOTP = async (email, otp) => {
-  const apiKey = process.env.RESEND_API_KEY;
+  const host = process.env.EMAIL_HOST;
+  const port = parseInt(process.env.EMAIL_PORT) || 587;
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
 
-  console.log('sendEmailOTP called — RESEND_API_KEY:', apiKey ? '***set***' : 'NOT SET');
+  console.log('sendEmailOTP called — EMAIL_HOST:', host ? host : 'NOT SET');
 
-  if (!apiKey) {
-    console.error('RESEND_API_KEY not set in environment!');
-    throw new Error('Resend API key not configured');
+  if (!host || !user || !pass) {
+    console.error('Email config missing in environment!');
+    return { sent: false, reason: 'EMAIL_CONFIG_MISSING', debugOtp: otp };
   }
 
-  const resend = new Resend(apiKey);
+  try {
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: false,
+      auth: { user, pass }
+    });
 
-  const { data, error } = await resend.emails.send({
-    from: 'Sahi Park <onboarding@resend.dev>',
-    to: email,
-    subject: 'Your Sahi Park OTP Code',
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;background:#0a0a1a;color:white;border-radius:16px;overflow:hidden;">
-        <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:30px;text-align:center;">
-          <h1 style="margin:0;font-size:28px;">🅿️ Sahi Park</h1>
-          <p style="margin:8px 0 0;opacity:0.85;">Email Verification</p>
-        </div>
-        <div style="padding:30px;text-align:center;">
-          <p style="color:#aaa;font-size:15px;">Your OTP code is:</p>
-          <div style="background:rgba(102,126,234,0.15);border:2px solid rgba(102,126,234,0.4);border-radius:12px;padding:20px;margin:20px 0;">
-            <span style="font-size:42px;font-weight:900;letter-spacing:10px;color:#a78bfa;">${otp}</span>
+    await transporter.sendMail({
+      from: `"Sahi Park 🅿️" <${user}>`,
+      to: email,
+      subject: 'Your Sahi Park OTP Code',
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;background:#0a0a1a;color:white;border-radius:16px;overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:30px;text-align:center;">
+            <h1 style="margin:0;font-size:28px;">🅿️ Sahi Park</h1>
+            <p style="margin:8px 0 0;opacity:0.85;">Email Verification</p>
           </div>
-          <p style="color:#aaa;font-size:13px;">Valid for <strong style="color:white;">5 minutes</strong>. Do not share with anyone.</p>
+          <div style="padding:30px;text-align:center;">
+            <p style="color:#aaa;font-size:15px;">Your OTP code is:</p>
+            <div style="background:rgba(102,126,234,0.15);border:2px solid rgba(102,126,234,0.4);border-radius:12px;padding:20px;margin:20px 0;">
+              <span style="font-size:42px;font-weight:900;letter-spacing:10px;color:#a78bfa;">${otp}</span>
+            </div>
+            <p style="color:#aaa;font-size:13px;">Valid for <strong style="color:white;">5 minutes</strong>. Do not share with anyone.</p>
+          </div>
         </div>
-      </div>
-    `
-  });
+      `
+    });
 
-  if (error) {
-    console.error('Resend error:', error);
-    throw new Error(error.message);
+    console.log(`✅ [OTP SENT] Email sent to ${email}`);
+    return { sent: true };
+  } catch (err) {
+    console.error(`❌ [OTP ERROR] ${email}:`, err.message);
+    return { sent: false, reason: err.message, debugOtp: otp };
   }
-
-  console.log('Email OTP sent successfully via Resend. ID:', data?.id);
 };
 
 const sendSmsOTP = (mobile, otp) => {

@@ -4,9 +4,15 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const Sentry = require('@sentry/node');
 
 const authRoutes = require('./routes/auth');
 const parkingRoutes = require('./routes/parking');
+
+// ── Sentry init (must be before app) ──────────────────────────────────────────
+if (process.env.SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.2 });
+}
 
 const app = express();
 
@@ -34,7 +40,7 @@ app.use(express.json({ limit: '1mb' }));
 
 // ── Rate limiting ──────────────────────────────────────────────────────────────
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 20,
   message: { success: false, message: 'Too many requests. Please try again after 15 minutes.' },
   standardHeaders: true,
@@ -42,7 +48,7 @@ const authLimiter = rateLimit({
 });
 
 const apiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000,
   max: 60,
   message: { success: false, message: 'Too many requests. Please slow down.' }
 });
@@ -58,6 +64,11 @@ app.use('/api/', apiLimiter);
 // ── Routes ─────────────────────────────────────────────────────────────────────
 app.use(authRoutes);
 app.use(parkingRoutes);
+
+// ── Sentry error handler (v8+ API) ────────────────────────────────────────────
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 // ── 404 handler ────────────────────────────────────────────────────────────────
 app.use((req, res) => {

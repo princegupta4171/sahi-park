@@ -118,4 +118,12 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// ── Admin: Delete user ────────────────────────────────────────────────────────
+router.delete('/admin/user/:id', async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'User deleted' });
+  } catch { res.status(500).json({ success: false, message: 'Delete failed' }); }
+});
+
 module.exports = router;

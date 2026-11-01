@@ -183,4 +183,34 @@ async function releaseHandler(req, res) {
 router.post('/api/v1/release', releaseHandler);
 router.post('/release', releaseHandler);
 
+// ── Admin: Delete space ────────────────────────────────────────────────────────
+router.delete('/admin/space/:id', async (req, res) => {
+  try {
+    await Parking.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Space deleted' });
+  } catch { res.status(500).json({ success: false, message: 'Delete failed' }); }
+});
+
+// ── Admin: Force release space ─────────────────────────────────────────────────
+router.post('/admin/release/:id', async (req, res) => {
+  try {
+    const space = await Parking.findById(req.params.id);
+    if (!space) return res.json({ success: false, message: 'Space not found' });
+    space.renterId = null; space.renterName = null; space.isAvailable = true;
+    space.isPaid = false; space.bookingDuration = 0; space.totalAmount = 0;
+    await space.save();
+    res.json({ success: true, message: 'Space force released' });
+  } catch { res.status(500).json({ success: false, message: 'Release failed' }); }
+});
+
+// ── Admin: Update space price ──────────────────────────────────────────────────
+router.post('/admin/update-price/:id', async (req, res) => {
+  try {
+    const { pricePerHour } = req.body;
+    if (!pricePerHour) return res.json({ success: false, message: 'Price required' });
+    await Parking.findByIdAndUpdate(req.params.id, { pricePerHour: parseFloat(pricePerHour) });
+    res.json({ success: true, message: 'Price updated' });
+  } catch { res.status(500).json({ success: false, message: 'Update failed' }); }
+});
+
 module.exports = router;

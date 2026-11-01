@@ -1068,7 +1068,7 @@ function App() {
                             <th>Email</th>
                             <th>Address</th>
                             <th>User Type</th>
-                            <th>Created At</th>
+                            <th>Created At</th><th>Action</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1104,7 +1104,7 @@ function App() {
                             <th>Price/Hour</th>
                             <th>Total Spaces</th>
                             <th>Status</th>
-                            <th>Location</th>
+                            <th>Location</th><th>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1623,3 +1623,8 @@ function App() {
 }
 
 export default App;
+
+
+
+
+

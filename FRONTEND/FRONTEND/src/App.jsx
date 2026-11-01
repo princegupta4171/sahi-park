@@ -75,6 +75,9 @@ function App() {
   const [forgotOtp, setForgotOtp] = useState('');
   const [forgotNewPass, setForgotNewPass] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [selectedAdminUser, setSelectedAdminUser] = useState(null);
+  const [selectedAdminSpace, setSelectedAdminSpace] = useState(null);
+  const [editPrice, setEditPrice] = useState('');
 
   // Sync state changes with localStorage for refresh persistence
   useEffect(() => {
@@ -1052,35 +1055,41 @@ function App() {
                   <h2>Admin Panel - Management Dashboard</h2>
                   <button onClick={() => { setShowAdmin(false); setIsAdminAuthenticated(false); }}>Close</button>
                 </div>
-                
+
                 <div className="admin-tabs">
                   <div className="users-table">
                     <h3>👥 All Registered Users ({allUsers.length})</h3>
                     {allUsers.length === 0 ? (
-                      <p style={{textAlign: 'center', padding: '20px', color: '#666'}}>No users registered yet</p>
+                      <p style={{textAlign:'center',padding:'20px',color:'#666'}}>No users registered yet</p>
                     ) : (
                       <table>
                         <thead>
                           <tr>
-                            <th>User ID</th>
                             <th>Username</th>
                             <th>Mobile</th>
                             <th>Email</th>
-                            <th>Address</th>
                             <th>User Type</th>
-                            <th>Created At</th><th>Action</th>
+                            <th>Action</th>
                           </tr>
                         </thead>
                         <tbody>
                           {allUsers.map((u) => (
-                            <tr key={u._id}>
-                              <td>{u._id}</td>
+                            <tr key={u._id} style={{cursor:'pointer'}} onClick={() => setSelectedAdminUser(u)}>
                               <td>{u.username}</td>
                               <td>{u.mobile}</td>
                               <td>{u.email}</td>
-                              <td>{u.address}</td>
                               <td><span className={`badge ${u.userType}`}>{u.userType}</span></td>
-                              <td>{new Date(u.createdAt).toLocaleString()}</td><td><button style={{padding:"5px 12px,background:#e53935,color:white,border:none,borderRadius:6px,cursor:pointer,fontWeight:bold}} onClick={async () => { if(!window.confirm(Delete user +u.username+?)) return; await fetch(API_BASE_URL+/admin/user/+u._id,{method:DELETE}); loadUsers(); }}>Delete</button></td>
+                              <td>
+                                <button
+                                  style={{padding:'5px 12px',background:'#e53935',color:'white',border:'none',borderRadius:'6px',cursor:'pointer',fontWeight:'bold'}}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!window.confirm('Delete user ' + u.username + '?')) return;
+                                    await fetch(API_BASE_URL + '/admin/user/' + u._id, { method: 'DELETE' });
+                                    loadUsers();
+                                  }}
+                                >Delete</button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -1091,43 +1100,158 @@ function App() {
                   <div className="parking-spaces-table">
                     <h3>🏛️ All Parking Spaces ({allParkingSpaces.filter(s => s.providerId).length})</h3>
                     {allParkingSpaces.filter(s => s.providerId).length === 0 ? (
-                      <p style={{textAlign: 'center', padding: '20px', color: '#666'}}>No parking spaces added yet</p>
+                      <p style={{textAlign:'center',padding:'20px',color:'#666'}}>No parking spaces added yet</p>
                     ) : (
                       <table>
                         <thead>
                           <tr>
-                            <th>Space ID</th>
                             <th>Parking Name</th>
                             <th>Provider</th>
-                            <th>Address</th>
-                            <th>Mobile</th>
                             <th>Price/Hour</th>
-                            <th>Total Spaces</th>
                             <th>Status</th>
-                            <th>Location</th><th>Actions</th>
+                            <th>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {allParkingSpaces.filter(s => s.providerId).map((space) => (
-                            <tr key={space._id}>
-                              <td>{space._id}</td>
+                            <tr key={space._id} style={{cursor:'pointer'}} onClick={() => { setSelectedAdminSpace(space); setEditPrice(String(space.pricePerHour)); }}>
                               <td>{space.parkingName || 'N/A'}</td>
                               <td>{space.providerName}</td>
-                              <td>{space.address}</td>
-                              <td>{space.mobile}</td>
-                              <td><input type="number defaultValue={space.pricePerHour} style={{width:70px,padding:4px,border:1px solid #ddd,borderRadius:4px}} onBlur={async (e) => { const p = e.target.value; if(p && p !== String(space.pricePerHour)){ await fetch(API_BASE_URL+/admin/update-price/+space._id,{method:POST,headers:{Content-Type:application/json},body:JSON.stringify({pricePerHour:p})}); loadAllParkingSpaces(); }}} /></td>
-                              <td>{space.totalSpaces || 1}</td>
+                              <td>Rs.{space.pricePerHour}/hr</td>
                               <td><span className={`badge ${space.isAvailable ? 'available' : 'occupied'}`}>{space.isAvailable ? 'Available' : 'Occupied'}</span></td>
-                              <td>{space.latitude?.toFixed(4)}, {space.longitude?.toFixed(4)}</td>
+                              <td style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+                                {!space.isAvailable && (
+                                  <button
+                                    style={{padding:'5px 10px',background:'#ff9800',color:'white',border:'none',borderRadius:'6px',cursor:'pointer',fontWeight:'bold',fontSize:'12px'}}
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (!window.confirm('Force release this space?')) return;
+                                      await fetch(API_BASE_URL + '/admin/release/' + space._id, { method: 'POST' });
+                                      loadAllParkingSpaces();
+                                    }}
+                                  >Release</button>
+                                )}
+                                <button
+                                  style={{padding:'5px 10px',background:'#e53935',color:'white',border:'none',borderRadius:'6px',cursor:'pointer',fontWeight:'bold',fontSize:'12px'}}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!window.confirm('Delete this space?')) return;
+                                    await fetch(API_BASE_URL + '/admin/space/' + space._id, { method: 'DELETE' });
+                                    loadAllParkingSpaces();
+                                  }}
+                                >Delete</button>
+                              </td>
                             </tr>
                           ))}
- <td>{space.latitude?.toFixed(4)}, {space.longitude?.toFixed(4)}</td>
- <td style={{display:flex,gap:6px,flexWrap:wrap}}>{!space.isAvailable && (<button style={{padding:5px 10px,background:#ff9800,color:white,border:none,borderRadius:6px,cursor:pointer,fontWeight:bold,fontSize:12px}} onClick={async () => { if(!window.confirm(Force release?)) return; await fetch(API_BASE_URL+/admin/release/+space._id,{method:POST}); loadAllParkingSpaces(); }}>Release</button>)}<button style={{padding:5px 10px,background:#e53935,color:white,border:none,borderRadius:6px,cursor:pointer,fontWeight:bold,fontSize:12px}} onClick={async () => { if(!window.confirm(Delete space?)) return; await fetch(API_BASE_URL+/admin/space/+space._id,{method:DELETE}); loadAllParkingSpaces(); }}>Delete</button></td>
+                        </tbody>
+                      </table>
                     )}
                   </div>
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {selectedAdminUser && (
+        <div className="auth-overlay" onClick={() => setSelectedAdminUser(null)}>
+          <div className="admin-content" style={{maxWidth:'480px'}} onClick={e => e.stopPropagation()}>
+            <div className="admin-header">
+              <h2>👤 User Details</h2>
+              <button onClick={() => setSelectedAdminUser(null)}>Close</button>
+            </div>
+            <div style={{padding:'20px',display:'flex',flexDirection:'column',gap:'12px'}}>
+              <p><strong>User ID:</strong> {selectedAdminUser._id}</p>
+              <p><strong>Username:</strong> {selectedAdminUser.username}</p>
+              <p><strong>Mobile:</strong> {selectedAdminUser.mobile}</p>
+              <p><strong>Email:</strong> {selectedAdminUser.email}</p>
+              <p><strong>Address:</strong> {selectedAdminUser.address}</p>
+              <p><strong>User Type:</strong> <span className={`badge ${selectedAdminUser.userType}`}>{selectedAdminUser.userType}</span></p>
+              <p><strong>Registered:</strong> {new Date(selectedAdminUser.createdAt).toLocaleString()}</p>
+              <button
+                style={{padding:'8px 16px',background:'#e53935',color:'white',border:'none',borderRadius:'8px',cursor:'pointer',fontWeight:'bold',marginTop:'8px'}}
+                onClick={async () => {
+                  if (!window.confirm('Delete user ' + selectedAdminUser.username + '?')) return;
+                  await fetch(API_BASE_URL + '/admin/user/' + selectedAdminUser._id, { method: 'DELETE' });
+                  setSelectedAdminUser(null);
+                  loadUsers();
+                }}
+              >🗑️ Delete This User</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedAdminSpace && (
+        <div className="auth-overlay" onClick={() => setSelectedAdminSpace(null)}>
+          <div className="admin-content" style={{maxWidth:'500px'}} onClick={e => e.stopPropagation()}>
+            <div className="admin-header">
+              <h2>🏛️ Space Details</h2>
+              <button onClick={() => setSelectedAdminSpace(null)}>Close</button>
+            </div>
+            <div style={{padding:'20px',display:'flex',flexDirection:'column',gap:'12px'}}>
+              <p><strong>Space ID:</strong> {selectedAdminSpace._id}</p>
+              <p><strong>Parking Name:</strong> {selectedAdminSpace.parkingName || 'N/A'}</p>
+              <p><strong>Provider:</strong> {selectedAdminSpace.providerName}</p>
+              <p><strong>Address:</strong> {selectedAdminSpace.address}</p>
+              <p><strong>Mobile:</strong> {selectedAdminSpace.mobile}</p>
+              <p><strong>Total Spaces:</strong> {selectedAdminSpace.totalSpaces || 1}</p>
+              <p><strong>Status:</strong> <span className={`badge ${selectedAdminSpace.isAvailable ? 'available' : 'occupied'}`}>{selectedAdminSpace.isAvailable ? 'Available' : 'Occupied'}</span></p>
+              <p><strong>Location:</strong> {selectedAdminSpace.latitude?.toFixed(5)}, {selectedAdminSpace.longitude?.toFixed(5)}</p>
+              {!selectedAdminSpace.isAvailable && (
+                <>
+                  <p><strong>Renter:</strong> {selectedAdminSpace.renterName}</p>
+                  <p><strong>Duration:</strong> {selectedAdminSpace.bookingDuration} hrs</p>
+                  <p><strong>Amount:</strong> Rs.{selectedAdminSpace.totalAmount}</p>
+                </>
+              )}
+              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                <strong>Price/Hour:</strong>
+                <input
+                  type="number"
+                  value={editPrice}
+                  onChange={e => setEditPrice(e.target.value)}
+                  style={{width:'80px',padding:'4px 8px',border:'1px solid #ddd',borderRadius:'6px'}}
+                />
+                <button
+                  style={{padding:'5px 12px',background:'#1976d2',color:'white',border:'none',borderRadius:'6px',cursor:'pointer',fontWeight:'bold'}}
+                  onClick={async () => {
+                    if (!editPrice) return;
+                    await fetch(API_BASE_URL + '/admin/update-price/' + selectedAdminSpace._id, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ pricePerHour: editPrice })
+                    });
+                    loadAllParkingSpaces();
+                    setSelectedAdminSpace({ ...selectedAdminSpace, pricePerHour: Number(editPrice) });
+                    alert('Price updated!');
+                  }}
+                >Update</button>
+              </div>
+              <div style={{display:'flex',gap:'10px',marginTop:'8px',flexWrap:'wrap'}}>
+                {!selectedAdminSpace.isAvailable && (
+                  <button
+                    style={{padding:'8px 16px',background:'#ff9800',color:'white',border:'none',borderRadius:'8px',cursor:'pointer',fontWeight:'bold'}}
+                    onClick={async () => {
+                      if (!window.confirm('Force release this space?')) return;
+                      await fetch(API_BASE_URL + '/admin/release/' + selectedAdminSpace._id, { method: 'POST' });
+                      setSelectedAdminSpace(null);
+                      loadAllParkingSpaces();
+                    }}
+                  >🔓 Force Release</button>
+                )}
+                <button
+                  style={{padding:'8px 16px',background:'#e53935',color:'white',border:'none',borderRadius:'8px',cursor:'pointer',fontWeight:'bold'}}
+                  onClick={async () => {
+                    if (!window.confirm('Delete this space?')) return;
+                    await fetch(API_BASE_URL + '/admin/space/' + selectedAdminSpace._id, { method: 'DELETE' });
+                    setSelectedAdminSpace(null);
+                    loadAllParkingSpaces();
+                  }}
+                >🗑️ Delete Space</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

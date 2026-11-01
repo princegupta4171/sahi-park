@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const https = require('https');
 
 const otpStore = {};
@@ -7,27 +7,19 @@ const MASTER_OTP = '123456';
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const sendEmailOTP = async (email, otp) => {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const apiKey = process.env.RESEND_API_KEY;
 
-  console.log('sendEmailOTP called — EMAIL_USER:', emailUser ? emailUser : 'NOT SET');
+  console.log('sendEmailOTP called — RESEND_API_KEY:', apiKey ? '***set***' : 'NOT SET');
 
-  if (!emailUser || !emailPass) {
-    console.error('EMAIL_USER or EMAIL_PASS not set in environment!');
-    throw new Error('Email credentials not configured');
+  if (!apiKey) {
+    console.error('RESEND_API_KEY not set in environment!');
+    throw new Error('Resend API key not configured');
   }
 
-  // Create transporter lazily (NOT at module load) so env vars are always available
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: emailUser,
-      pass: emailPass
-    }
-  });
+  const resend = new Resend(apiKey);
 
-  await transporter.sendMail({
-    from: `"Sahi Park 🅿️" <${emailUser}>`,
+  const { data, error } = await resend.emails.send({
+    from: 'Sahi Park <onboarding@resend.dev>',
     to: email,
     subject: 'Your Sahi Park OTP Code',
     html: `
@@ -46,7 +38,13 @@ const sendEmailOTP = async (email, otp) => {
       </div>
     `
   });
-  console.log('Email OTP sent successfully to:', email);
+
+  if (error) {
+    console.error('Resend error:', error);
+    throw new Error(error.message);
+  }
+
+  console.log('Email OTP sent successfully via Resend. ID:', data?.id);
 };
 
 const sendSmsOTP = (mobile, otp) => {

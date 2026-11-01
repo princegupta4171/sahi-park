@@ -3,34 +3,34 @@ const User = require('../models/User');
 const { generateOTP, saveOTP, verifyOTP, sendEmailOTP, sendSmsOTP } = require('../config/otp');
 const router = express.Router();
 
+
 router.get('/users', async (req, res) => {
   const users = await User.find().select('username userType mobile email address createdAt');
   res.json(users);
 });
 
-// ── Debug: Test email config ───────────────────────────────────────────────────
+// ── Debug: Test Resend email config ──────────────────────────────────────────
 router.get('/debug-email', async (req, res) => {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const resendKey = process.env.RESEND_API_KEY;
   const fast2sms = process.env.FAST2SMS_API_KEY;
 
-  if (!emailUser || !emailPass) {
+  if (!resendKey) {
     return res.json({
       success: false,
-      message: 'Email env vars missing',
-      EMAIL_USER: emailUser || 'NOT SET',
-      EMAIL_PASS: emailPass ? '***set***' : 'NOT SET',
+      message: 'RESEND_API_KEY not set in Render environment',
+      RESEND_API_KEY: 'NOT SET',
       FAST2SMS: fast2sms ? '***set***' : 'NOT SET'
     });
   }
 
   try {
-    await sendEmailOTP(emailUser, '123456'); // send test OTP to yourself
-    res.json({ success: true, message: `Test email sent to ${emailUser}` });
+    await sendEmailOTP('princegupta4171@gmail.com', '123456'); // test email to yourself
+    res.json({ success: true, message: 'Test email sent via Resend! Check inbox of princegupta4171@gmail.com' });
   } catch (err) {
-    res.json({ success: false, error: err.message, code: err.code });
+    res.json({ success: false, error: err.message });
   }
 });
+
 
 router.post('/send-otp', async (req, res) => {
   try {

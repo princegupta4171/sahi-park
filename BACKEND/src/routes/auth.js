@@ -34,10 +34,14 @@ router.get('/debug-email', async (req, res) => {
 
 router.post('/send-otp', async (req, res) => {
   try {
-    const { email, mobile } = req.body;
+    const { email, mobile, forgotPassword } = req.body;
     if (!email) return res.json({ success: false, message: 'Email required' });
     const existing = await User.findOne({ email });
-    if (existing) return res.json({ success: false, message: 'Email already registered' });
+    if (forgotPassword) {
+      if (!existing) return res.json({ success: false, message: 'Email not registered' });
+    } else {
+      if (existing) return res.json({ success: false, message: 'Email already registered' });
+    }
     const otp = generateOTP();
     saveOTP(email, otp);
     const results = await Promise.allSettled([
@@ -82,6 +86,22 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     console.error('Register error:', err);
     res.json({ success: false, message: 'Registration failed' });
+  }
+});
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) return res.json({ success: false, message: 'All fields required' });
+    const valid = verifyOTP(email, otp);
+    if (!valid) return res.json({ success: false, message: 'Invalid or expired OTP' });
+    const user = await User.findOne({ email });
+    if (!user) return res.json({ success: false, message: 'User not found' });
+    user.password = newPassword;
+    await user.save();
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (err) {
+    res.json({ success: false, message: 'Reset failed' });
   }
 });
 

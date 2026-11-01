@@ -69,6 +69,12 @@ function App() {
   const [otpValue, setOtpValue] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); // 1=email, 2=otp, 3=newpass
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPass, setForgotNewPass] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   // Sync state changes with localStorage for refresh persistence
   useEffect(() => {
@@ -617,6 +623,44 @@ function App() {
       }
     } catch (err) {
       alert('Payment failed. Please try again.');
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (forgotStep === 1) {
+      if (!forgotEmail) return alert('Email daalo');
+      setForgotLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: forgotEmail, forgotPassword: true })
+        });
+        const data = await res.json();
+        setForgotLoading(false);
+        if (data.success) { setForgotStep(2); }
+        else alert(data.message || 'Email not found');
+      } catch { setForgotLoading(false); alert('Server error'); }
+    } else if (forgotStep === 2) {
+      if (!forgotOtp) return alert('OTP daalo');
+      setForgotStep(3);
+    } else if (forgotStep === 3) {
+      if (!forgotNewPass || forgotNewPass.length < 6) return alert('Password kam se kam 6 characters ka hona chahiye');
+      setForgotLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: forgotEmail, otp: forgotOtp, newPassword: forgotNewPass })
+        });
+        const data = await res.json();
+        setForgotLoading(false);
+        if (data.success) {
+          alert('Password reset ho gaya! Ab login karo.');
+          setShowForgotPassword(false);
+          setForgotStep(1); setForgotEmail(''); setForgotOtp(''); setForgotNewPass('');
+        } else alert(data.message || 'Reset failed');
+      } catch { setForgotLoading(false); alert('Server error'); }
     }
   };
 
@@ -1362,6 +1406,7 @@ function App() {
                     <input type="password" placeholder="Password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
                   </div>
                   <button type="submit" className="auth-submit-btn">Login 🚀</button>
+                  <button type="button" className="auth-forgot-btn" onClick={() => { setShowLogin(false); setShowForgotPassword(true); }}>🔑 Forgot Password?</button>
                   <button type="button" className="auth-cancel-btn" onClick={() => setShowLogin(false)}>✕ Cancel</button>
                 </form>
               )}
@@ -1418,6 +1463,63 @@ function App() {
                 </form>
               )}
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showForgotPassword && (
+        <div className="auth-overlay" onClick={() => setShowForgotPassword(false)}>
+          <div className="auth-box-3d" onClick={e => e.stopPropagation()}>
+            <div className="auth-car-scene">
+              <div className="auth-road"><div className="road-line"></div></div>
+              <div className="auth-car">
+                <div className="car-body">
+                  <div className="car-roof"></div>
+                  <div className="car-windows"><div className="car-win car-win-l"></div><div className="car-win car-win-r"></div></div>
+                  <div className="car-light car-light-f"></div>
+                  <div className="car-light car-light-b"></div>
+                </div>
+                <div className="car-wheels">
+                  <div className="wheel wheel-f"><div className="wheel-hub"></div></div>
+                  <div className="wheel wheel-b"><div className="wheel-hub"></div></div>
+                </div>
+              </div>
+              <div className="auth-form-title"><span className="auth-logo">🔑</span><span>Reset Password</span></div>
+            </div>
+            <div className="auth-form-body">
+              {forgotStep === 1 && (
+                <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+                  <p className="otp-hint">Apna registered email daalo — OTP bhejenge</p>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">📧</span>
+                    <input type="email" placeholder="Email Address" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} />
+                  </div>
+                  <button className="auth-submit-btn" onClick={handleForgotPassword} disabled={forgotLoading}>{forgotLoading ? 'Sending...' : 'Send OTP →'}</button>
+                  <button className="auth-switch-btn" onClick={() => { setShowForgotPassword(false); setShowLogin(true); }}>← Back to Login</button>
+                </div>
+              )}
+              {forgotStep === 2 && (
+                <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+                  <p className="otp-hint">📧 OTP sent to <strong>{forgotEmail}</strong></p>
+                  <div className="auth-input-group otp-input-group">
+                    <span className="auth-input-icon">🔢</span>
+                    <input placeholder="Enter 6-digit OTP" value={forgotOtp} onChange={e => setForgotOtp(e.target.value)} maxLength={6} />
+                  </div>
+                  <button className="auth-submit-btn" onClick={handleForgotPassword}>Verify OTP →</button>
+                  <button className="auth-switch-btn" onClick={() => setForgotStep(1)}>← Back</button>
+                </div>
+              )}
+              {forgotStep === 3 && (
+                <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+                  <p className="otp-hint">Naya password set karo</p>
+                  <div className="auth-input-group">
+                    <span className="auth-input-icon">🔒</span>
+                    <input type="password" placeholder="New Password (min 6 chars)" value={forgotNewPass} onChange={e => setForgotNewPass(e.target.value)} />
+                  </div>
+                  <button className="auth-submit-btn" onClick={handleForgotPassword} disabled={forgotLoading}>{forgotLoading ? 'Resetting...' : '✅ Reset Password'}</button>
+                </div>
+              )}
             </div>
           </div>
         </div>

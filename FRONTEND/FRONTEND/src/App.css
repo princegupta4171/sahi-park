@@ -3884,3 +3884,18 @@ body {
   text-align: center;
   color: #a78bfa !important;
 }
+
+.auth-forgot-btn {
+  padding: 9px;
+  background: transparent;
+  color: #a78bfa;
+  border: 1px solid rgba(167,139,250,0.3);
+  border-radius: 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.auth-forgot-btn:hover {
+  background: rgba(167,139,250,0.1);
+  border-color: rgba(167,139,250,0.6);
+}

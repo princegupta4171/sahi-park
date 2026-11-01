@@ -10,6 +10,9 @@ const parkingRoutes = require('./routes/parking');
 
 const app = express();
 
+// ── Trust proxy (required for Render/Heroku) ──────────────────────────────────
+app.set('trust proxy', 1);
+
 // ── Security headers ───────────────────────────────────────────────────────────
 app.use(helmet());
 

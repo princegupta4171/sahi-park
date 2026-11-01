@@ -13,7 +13,7 @@ A smart parking space management platform connecting parking space providers wit
 
 - **For Renters** — Search and book nearby parking spaces using GPS location
 - **For Providers** — List your parking space on the map and earn money
-- **OTP Verification** — Email OTP on signup via Nodemailer & Gmail SMTP
+- **OTP Verification** — Email OTP on signup via Brevo Transactional Email API
 - **Email Notifications** — Provider gets email when space is booked/released
 - **Admin Panel** — Manage all users and parking spaces
 - **Real-time Availability** — Live parking space status updates
@@ -31,7 +31,7 @@ A smart parking space management platform connecting parking space providers wit
 | Database | MongoDB Atlas |
 | Maps | Leaflet.js + OpenStreetMap |
 | Auth | JWT + bcrypt |
-| Email OTP | Nodemailer (Gmail SMTP) |
+| Email OTP | Brevo (Transactional Email API) |
 | Security | Helmet, CORS whitelist, Rate Limiting |
 | Logging | Morgan |
 | Error Tracking | Sentry |
@@ -100,6 +100,7 @@ JWT_SECRET=your_long_random_secret
 ALLOWED_ORIGINS=http://localhost:5173
 EMAIL_USER=yourgmail@gmail.com
 EMAIL_PASS=your_16_char_app_password
+BREVO_API_KEY=your_brevo_api_key
 SENTRY_DSN=your_sentry_dsn
 ```
 
@@ -139,9 +140,9 @@ npm run dev
 
 ## 🔐 OTP System
 
-- On signup, a 6-digit OTP is sent to the user's **email**
+- On signup, a 6-digit OTP is sent to the user's **email** via **Brevo API**
 - OTP is valid for **5 minutes**
-- Uses **Nodemailer** (Gmail SMTP) for email delivery
+- Uses **Brevo Transactional Email API** for email delivery
 - Master OTP `123456` available for testing
 
 ---

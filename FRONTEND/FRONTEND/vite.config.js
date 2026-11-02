@@ -11,13 +11,18 @@ export default defineConfig({
     proxy: {
       '/login': 'http://localhost:3000',
       '/register': 'http://localhost:3000',
+      '/send-otp': 'http://localhost:3000',
+      '/verify-otp': 'http://localhost:3000',
+      '/reset-password': 'http://localhost:3000',
       '/spaces': 'http://localhost:3000',
       '/provide': 'http://localhost:3000',
       '/book': 'http://localhost:3000',
       '/release': 'http://localhost:3000',
       '/users': 'http://localhost:3000',
       '/nearby-spaces': 'http://localhost:3000',
-      '/payment': 'http://localhost:3000'
+      '/payment': 'http://localhost:3000',
+      '/admin': 'http://localhost:3000',
+      '/debug-email': 'http://localhost:3000'
     }
   }
 })

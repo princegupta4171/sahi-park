@@ -267,7 +267,8 @@ function App() {
       const data = await res.json();
       if (data.success) {
         if (data.token) setAuthToken(data.token);
-        setUser({ ...data, userType: data.userType || loginType });
+        // Normalize: backend returns userId (from _id), ensure it's always stored as userId
+        setUser({ ...data, userId: data.userId || data._id, userType: data.userType || loginType });
         setFormData({ username: '', password: '', userType: 'renter' });
         setShowLogin(false);
       } else {
@@ -464,26 +465,55 @@ function App() {
       setShowLocationPicker(false);
       setShowMap(true);
     } else if (user.userType === 'provider') {
+      // userId can be stored as userId or _id depending on login vs register path
+      const providerId = user.userId || user._id || user.id;
+      if (!providerId) {
+        alert('Session error: Provider ID not found. Please logout and login again.');
+        return;
+      }
+
+      if (!providerFormData.parkingName || !providerFormData.address || !providerFormData.mobile) {
+        alert('Please fill all required fields: Parking Name, Address, Mobile');
+        return;
+      }
+
       try {
         const fd = new FormData();
-            fd.append('providerId', user.userId);
-            fd.append('providerName', user.username);
-            fd.append('latitude', tempLocation.lat);
-            fd.append('longitude', tempLocation.lng);
-            fd.append('mobile', providerFormData.mobile);
-            fd.append('email', providerFormData.email || '');
-            fd.append('address', providerFormData.address);
-            fd.append('pricePerHour', providerFormData.pricePerHour);
-            fd.append('parkingName', providerFormData.parkingName);
-            fd.append('totalSpaces', providerFormData.totalSpaces);
-            fd.append('description', providerFormData.description || '');
-            if (providerFormData.providerPhoto) fd.append('providerPhoto', providerFormData.providerPhoto);
-            if (providerFormData.spacePhoto) fd.append('spacePhoto', providerFormData.spacePhoto);
-            const res = await fetch(`${API_BASE_URL}/provide`, { method: 'POST', body: fd });
+        fd.append('providerId', providerId);
+        fd.append('providerName', user.username);
+        fd.append('latitude', tempLocation.lat);
+        fd.append('longitude', tempLocation.lng);
+        fd.append('mobile', providerFormData.mobile);
+        fd.append('email', providerFormData.email || '');
+        fd.append('address', providerFormData.address);
+        fd.append('pricePerHour', providerFormData.pricePerHour || 50);
+        fd.append('parkingName', providerFormData.parkingName);
+        fd.append('totalSpaces', providerFormData.totalSpaces || 1);
+        fd.append('description', providerFormData.description || '');
+        if (providerFormData.providerPhoto) fd.append('providerPhoto', providerFormData.providerPhoto);
+        if (providerFormData.spacePhoto) fd.append('spacePhoto', providerFormData.spacePhoto);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+        const res = await fetch(`${API_BASE_URL}/provide`, {
+          method: 'POST',
+          body: fd,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const errText = await res.text();
+          console.error('Server error response:', res.status, errText);
+          alert(`Server error (${res.status}). Please try again.`);
+          return;
+        }
+
         const data = await res.json();
         if (data.success) {
           if (data.waLink) window.open(data.waLink, '_blank');
-          alert('Parking space submitted for review!\n\nAdmin ko WhatsApp message bheja gaya hai. Verify hone ke baad renters ko dikhega.');
+          alert('✅ Parking space submitted for review!\n\nAdmin ko WhatsApp message bheja gaya hai. Verify hone ke baad renters ko dikhega.');
           setShowLocationPicker(false);
           setProviderFormData({ parkingName: '', address: '', mobile: '', email: '', pricePerHour: 50, totalSpaces: 1, description: '', providerPhoto: null, spacePhoto: null });
           setTempLocation(null);
@@ -492,7 +522,14 @@ function App() {
           alert(data.message || 'Failed to add parking space');
         }
       } catch (error) {
-        alert('Failed to submit parking space. Please try again.');
+        console.error('confirmLocation error:', error);
+        if (error.name === 'AbortError') {
+          alert('Request timed out. Please check your internet connection and try again.');
+        } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+          alert(`❌ Cannot connect to server.\n\nServer URL: ${API_BASE_URL}\n\nPlease check:\n1. Backend server chal raha hai?\n2. VITE_API_URL sahi set hai?\n3. Internet connection theek hai?`);
+        } else {
+          alert('Failed to submit parking space. Please try again.\n\nError: ' + error.message);
+        }
       }
     }
   };

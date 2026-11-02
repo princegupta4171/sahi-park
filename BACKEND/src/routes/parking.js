@@ -82,9 +82,12 @@ async function provideHandler(req, res) {
       }
     }
 
-    const count = await Parking.countDocuments();
+    // Use max spaceNumber + 1 to avoid duplicate key errors when spaces are deleted
+    const maxSpace = await Parking.findOne().sort({ spaceNumber: -1 }).select('spaceNumber');
+    const nextSpaceNumber = maxSpace ? maxSpace.spaceNumber + 1 : 1;
+
     const newSpace = new Parking({
-      spaceNumber: count + 1, providerId, providerName, latitude, longitude,
+      spaceNumber: nextSpaceNumber, providerId, providerName, latitude, longitude,
       location: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] },
       parkingArea, mobile, email, address,
       pricePerHour: parseFloat(pricePerHour) || 50,
@@ -126,7 +129,35 @@ async function provideHandler(req, res) {
     }
     res.json({ success: true, message: 'Parking space submitted for review', waLink });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to add parking space' });
+    console.error('provideHandler error:', err.message, err.code || '');
+    if (err.code === 11000) {
+      // Duplicate spaceNumber — retry with timestamp-based unique number
+      try {
+        const fallbackSpace = new Parking({
+          spaceNumber: Date.now(),
+          providerId: req.body.providerId,
+          providerName: req.body.providerName,
+          latitude: req.body.latitude,
+          longitude: req.body.longitude,
+          location: { type: 'Point', coordinates: [parseFloat(req.body.longitude), parseFloat(req.body.latitude)] },
+          mobile: req.body.mobile,
+          email: req.body.email || '',
+          address: req.body.address,
+          pricePerHour: parseFloat(req.body.pricePerHour) || 50,
+          parkingName: req.body.parkingName,
+          totalSpaces: parseInt(req.body.totalSpaces) || 1,
+          description: req.body.description || '',
+          isAvailable: true
+        });
+        await fallbackSpace.save();
+        const mapsLink = `https://www.google.com/maps?q=${req.body.latitude},${req.body.longitude}`;
+        const waLink = `https://wa.me/916394012121?text=${encodeURIComponent(`🅿️ New Space: ${req.body.parkingName} at ${req.body.address} — ${mapsLink}`)}`;
+        return res.json({ success: true, message: 'Parking space submitted for review', waLink });
+      } catch (retryErr) {
+        console.error('provideHandler retry error:', retryErr.message);
+      }
+    }
+    res.status(500).json({ success: false, message: 'Failed to add parking space: ' + err.message });
   }
 }
 

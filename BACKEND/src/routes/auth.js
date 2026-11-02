@@ -109,7 +109,15 @@ router.post('/login', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.body.username, password: req.body.password });
     if (user) {
-      res.json({ success: true, userId: user._id, username: user.username, userType: user.userType, mobile: user.mobile, email: user.email, address: user.address });
+      res.json({
+        success: true,
+        userId: user._id,   // always send as userId for frontend consistency
+        username: user.username,
+        userType: user.userType,
+        mobile: user.mobile,
+        email: user.email,
+        address: user.address
+      });
     } else {
       res.json({ success: false, message: 'Invalid username or password' });
     }

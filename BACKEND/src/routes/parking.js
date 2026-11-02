@@ -59,9 +59,19 @@ router.get('/spaces', spacesHandler);
 async function provideHandler(req, res) {
   try {
     const { providerId, providerName, latitude, longitude, parkingArea, mobile, email, address, pricePerHour, parkingName, totalSpaces, description } = req.body;
-    if (!latitude || !longitude) return res.json({ success: false, message: 'Location is required. Please select location on map.' });
-    if (!providerId) return res.json({ success: false, message: 'Provider not authenticated' });
+
+    // Detailed logging to trace 500 errors
+    console.log('provideHandler called — body keys:', Object.keys(req.body));
+    console.log('providerId:', providerId, '| lat:', latitude, '| lng:', longitude, '| parkingName:', parkingName);
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    if (!latitude || !longitude || isNaN(lat) || isNaN(lng)) return res.json({ success: false, message: 'Location is required. Please select location on map.' });
+    if (!providerId || providerId === 'undefined') return res.json({ success: false, message: 'Provider not authenticated. Please logout and login again.' });
     if (!parkingName) return res.json({ success: false, message: 'Parking name is required' });
+    if (!mobile) return res.json({ success: false, message: 'Mobile number is required' });
+    if (!address) return res.json({ success: false, message: 'Address is required' });
 
     // Upload images to Cloudinary if provided and credentials are set
     let providerPhotoUrl = '';
@@ -87,8 +97,8 @@ async function provideHandler(req, res) {
     const nextSpaceNumber = maxSpace ? maxSpace.spaceNumber + 1 : 1;
 
     const newSpace = new Parking({
-      spaceNumber: nextSpaceNumber, providerId, providerName, latitude, longitude,
-      location: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] },
+      spaceNumber: nextSpaceNumber, providerId, providerName, latitude: lat, longitude: lng,
+      location: { type: 'Point', coordinates: [lng, lat] },
       parkingArea, mobile, email, address,
       pricePerHour: parseFloat(pricePerHour) || 50,
       parkingName, totalSpaces: parseInt(totalSpaces) || 1, description,

@@ -29,7 +29,7 @@ async function nearbyHandler(req, res) {
     const { lat, lng, radius } = req.query;
     if (!lat || !lng) return res.status(400).json({ success: false, message: 'lat and lng required' });
     const maxRadius = parseFloat(radius) || 10;
-    const spaces = await Parking.find({ providerId: { $ne: null }, latitude: { $ne: null }, longitude: { $ne: null } });
+    const spaces = await Parking.find({ providerId: { $ne: null }, latitude: { $ne: null }, longitude: { $ne: null }, isVerified: true });
     const nearby = spaces
       .map(s => ({ ...s.toObject(), distance: calculateDistance(parseFloat(lat), parseFloat(lng), s.latitude, s.longitude) }))
       .filter(s => s.distance <= maxRadius)
@@ -71,20 +71,23 @@ async function provideHandler(req, res) {
       parkingName, totalSpaces: parseInt(totalSpaces) || 1, description, isAvailable: true
     });
     await newSpace.save();
+    // WhatsApp alert to admin (click-to-chat link logged — frontend will show it)
+    const waMsg = encodeURIComponent(`🅿️ *Sahi Park - New Space Request*\n\nProvider: ${providerName}\nParking: ${parkingName}\nAddress: ${address}\nPrice: ₹${pricePerHour}/hr\nMobile: ${mobile}\n\nLogin to Admin Panel to verify this space.`);
+    const waLink = `https://wa.me/916394012121?text=${waMsg}`;
     // Notify provider
     if (email) {
-      sendNotification(email, '✅ Your Parking Space is Listed on Sahi Park',
+      sendNotification(email, '⏳ Your Parking Space is Under Review',
         `<div style="font-family:Arial,sans-serif;padding:20px;background:#0a0a1a;color:white;border-radius:12px;">
           <h2>🅿️ Sahi Park — Space Listed!</h2>
           <p>Hi <strong>${providerName}</strong>,</p>
-          <p>Your parking space <strong>${parkingName}</strong> has been successfully listed.</p>
+          <p>Your parking space <strong>${parkingName}</strong> has been submitted for review.</p>
           <p><strong>Address:</strong> ${address}</p>
           <p><strong>Price:</strong> ₹${pricePerHour}/hour</p>
-          <p>Renters can now find and book your space. You'll be notified when someone books it.</p>
+          <p>Our admin will verify it shortly. Once verified, renters will be able to find and book your space.</p>
         </div>`
       );
     }
-    res.json({ success: true, message: 'Parking space added successfully' });
+    res.json({ success: true, message: 'Parking space submitted for review', waLink });
   } catch {
     res.status(500).json({ success: false, message: 'Failed to add parking space' });
   }
@@ -182,6 +185,25 @@ async function releaseHandler(req, res) {
 
 router.post('/api/v1/release', releaseHandler);
 router.post('/release', releaseHandler);
+
+// ── Admin: Verify space ──────────────────────────────────────────────────────
+router.post('/admin/verify/:id', async (req, res) => {
+  try {
+    const space = await Parking.findByIdAndUpdate(req.params.id, { isVerified: true }, { new: true });
+    if (!space) return res.json({ success: false, message: 'Space not found' });
+    if (space.email) {
+      sendNotification(space.email, '✅ Your Parking Space is Now Live on Sahi Park!',
+        `<div style="font-family:Arial,sans-serif;padding:20px;background:#0a0a1a;color:white;border-radius:12px;">
+          <h2>🅿️ Sahi Park — Space Verified!</h2>
+          <p>Hi <strong>${space.providerName}</strong>,</p>
+          <p>Your parking space <strong>${space.parkingName}</strong> has been <strong style="color:#4ade80;">verified and is now live</strong>!</p>
+          <p>Renters can now find and book your space.</p>
+        </div>`
+      );
+    }
+    res.json({ success: true, message: 'Space verified successfully' });
+  } catch { res.status(500).json({ success: false, message: 'Verify failed' }); }
+});
 
 // ── Admin: Delete space ────────────────────────────────────────────────────────
 router.delete('/admin/space/:id', async (req, res) => {

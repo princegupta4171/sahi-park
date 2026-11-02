@@ -28,7 +28,8 @@ const parkingSchema = new mongoose.Schema({
   totalAmount: { type: Number, default: 0 },
   parkingName: String,
   totalSpaces: { type: Number, default: 1 },
-  description: String
+  description: String,
+  isVerified: { type: Boolean, default: false }
 });
 
 parkingSchema.index({ location: '2dsphere' }, { sparse: true });

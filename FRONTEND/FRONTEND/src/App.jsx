@@ -455,17 +455,13 @@ function App() {
       return;
     }
     
-    console.log('Confirming location for user type:', user?.userType);
-    console.log('Full user object:', user);
     setUserLocation(tempLocation);
     
     if (!user || user.userType === 'renter') {
-      console.log('Renter flow - finding nearby spaces');
       await findNearbySpaces(tempLocation.lat, tempLocation.lng);
       setShowLocationPicker(false);
       setShowMap(true);
     } else if (user.userType === 'provider') {
-      console.log('Provider flow - submitting parking space');
       try {
         const res = await fetch(`${API_BASE_URL}/provide`, {
           method: 'POST',
@@ -486,24 +482,17 @@ function App() {
         });
         const data = await res.json();
         if (data.success) {
-          alert('Parking space added successfully!');
+          // Open WhatsApp with pre-filled message to admin
+          if (data.waLink) window.open(data.waLink, '_blank');
+          alert('✅ Parking space submitted for review!\n\nAdmin will verify it shortly. WhatsApp message sent to admin.');
           setShowLocationPicker(false);
-          setProviderFormData({
-            parkingName: '',
-            address: '',
-            mobile: '',
-            email: '',
-            pricePerHour: 50,
-            totalSpaces: 1,
-            description: ''
-          });
+          setProviderFormData({ parkingName: '', address: '', mobile: '', email: '', pricePerHour: 50, totalSpaces: 1, description: '' });
           setTempLocation(null);
           loadSpaces();
         } else {
           alert(data.message || 'Failed to add parking space');
         }
       } catch (error) {
-        console.error('Error submitting parking space:', error);
         alert('Failed to submit parking space. Please try again.');
       }
     }
@@ -1230,6 +1219,24 @@ function App() {
                 >Update</button>
               </div>
               <div style={{display:'flex',gap:'10px',marginTop:'8px',flexWrap:'wrap'}}>
+                {!selectedAdminSpace.isVerified && (
+                  <button
+                    style={{padding:'8px 16px',background:'#4ade80',color:'#000',border:'none',borderRadius:'8px',cursor:'pointer',fontWeight:'bold'}}
+                    onClick={async () => {
+                      if (!window.confirm('Verify this space? It will become visible to renters.')) return;
+                      const res = await fetch(API_BASE_URL + '/admin/verify/' + selectedAdminSpace._id, { method: 'POST' });
+                      const data = await res.json();
+                      if (data.success) {
+                        alert('✅ Space verified! Provider ko email bheja gaya.');
+                        setSelectedAdminSpace({ ...selectedAdminSpace, isVerified: true });
+                        loadAllParkingSpaces();
+                      }
+                    }}
+                  >✅ Verify Space</button>
+                )}
+                {selectedAdminSpace.isVerified && (
+                  <span style={{padding:'8px 16px',background:'rgba(74,222,128,0.2)',color:'#4ade80',border:'1px solid #4ade80',borderRadius:'8px',fontWeight:'bold'}}>✅ Verified</span>
+                )}
                 {!selectedAdminSpace.isAvailable && (
                   <button
                     style={{padding:'8px 16px',background:'#ff9800',color:'white',border:'none',borderRadius:'8px',cursor:'pointer',fontWeight:'bold'}}

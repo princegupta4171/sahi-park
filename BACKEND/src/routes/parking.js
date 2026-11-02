@@ -63,15 +63,22 @@ async function provideHandler(req, res) {
     if (!providerId) return res.json({ success: false, message: 'Provider not authenticated' });
     if (!parkingName) return res.json({ success: false, message: 'Parking name is required' });
 
-    // Upload images to Cloudinary if provided
+    // Upload images to Cloudinary if provided and credentials are set
     let providerPhotoUrl = '';
     let spacePhotoUrl = '';
-    if (req.files) {
-      if (req.files.providerPhoto) {
-        providerPhotoUrl = await uploadToCloudinary(req.files.providerPhoto[0].buffer, 'sahi-park/providers');
-      }
-      if (req.files.spacePhoto) {
-        spacePhotoUrl = await uploadToCloudinary(req.files.spacePhoto[0].buffer, 'sahi-park/spaces');
+    const cloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
+      process.env.CLOUDINARY_CLOUD_NAME !== 'APNA_CLOUD_NAME';
+    
+    if (cloudinaryConfigured && req.files) {
+      try {
+        if (req.files.providerPhoto) {
+          providerPhotoUrl = await uploadToCloudinary(req.files.providerPhoto[0].buffer, 'sahi-park/providers');
+        }
+        if (req.files.spacePhoto) {
+          spacePhotoUrl = await uploadToCloudinary(req.files.spacePhoto[0].buffer, 'sahi-park/spaces');
+        }
+      } catch (uploadErr) {
+        // Photo upload failed — continue without photos
       }
     }
 

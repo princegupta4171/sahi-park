@@ -61,7 +61,9 @@ function App() {
     email: '',
     pricePerHour: 50,
     totalSpaces: 1,
-    description: ''
+    description: '',
+    providerPhoto: null,
+    spacePhoto: null
   });
   const [showAbout, setShowAbout] = useState(() => localStorage.getItem('sahi_park_show_about') === 'true');
   const [showContact, setShowContact] = useState(() => localStorage.getItem('sahi_park_show_contact') === 'true');
@@ -463,30 +465,27 @@ function App() {
       setShowMap(true);
     } else if (user.userType === 'provider') {
       try {
-        const res = await fetch(`${API_BASE_URL}/provide`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            providerId: user.userId, 
-            providerName: user.username,
-            latitude: tempLocation.lat,
-            longitude: tempLocation.lng,
-            mobile: providerFormData.mobile,
-            email: providerFormData.email,
-            address: providerFormData.address,
-            pricePerHour: parseFloat(providerFormData.pricePerHour),
-            parkingName: providerFormData.parkingName,
-            totalSpaces: providerFormData.totalSpaces,
-            description: providerFormData.description
-          })
-        });
+        const fd = new FormData();
+            fd.append('providerId', user.userId);
+            fd.append('providerName', user.username);
+            fd.append('latitude', tempLocation.lat);
+            fd.append('longitude', tempLocation.lng);
+            fd.append('mobile', providerFormData.mobile);
+            fd.append('email', providerFormData.email || '');
+            fd.append('address', providerFormData.address);
+            fd.append('pricePerHour', providerFormData.pricePerHour);
+            fd.append('parkingName', providerFormData.parkingName);
+            fd.append('totalSpaces', providerFormData.totalSpaces);
+            fd.append('description', providerFormData.description || '');
+            if (providerFormData.providerPhoto) fd.append('providerPhoto', providerFormData.providerPhoto);
+            if (providerFormData.spacePhoto) fd.append('spacePhoto', providerFormData.spacePhoto);
+            const res = await fetch(`${API_BASE_URL}/provide`, { method: 'POST', body: fd });
         const data = await res.json();
         if (data.success) {
-          // Open WhatsApp with pre-filled message to admin
           if (data.waLink) window.open(data.waLink, '_blank');
-          alert('✅ Parking space submitted for review!\n\nAdmin will verify it shortly. WhatsApp message sent to admin.');
+          alert('Parking space submitted for review!\n\nAdmin ko WhatsApp message bheja gaya hai. Verify hone ke baad renters ko dikhega.');
           setShowLocationPicker(false);
-          setProviderFormData({ parkingName: '', address: '', mobile: '', email: '', pricePerHour: 50, totalSpaces: 1, description: '' });
+          setProviderFormData({ parkingName: '', address: '', mobile: '', email: '', pricePerHour: 50, totalSpaces: 1, description: '', providerPhoto: null, spacePhoto: null });
           setTempLocation(null);
           loadSpaces();
         } else {
@@ -1345,6 +1344,19 @@ function App() {
                   rows="3"
                 />
               </div>
+
+              <div className="form-group">
+                <label>Your Photo (Provider)</label>
+                <input type="file" accept="image/*" onChange={(e) => setProviderFormData({ ...providerFormData, providerPhoto: e.target.files[0] })} />
+                {providerFormData.providerPhoto && <p style={{color:'#4ade80',fontSize:'13px',marginTop:'4px'}}>Selected: {providerFormData.providerPhoto.name}</p>}
+              </div>
+
+              <div className="form-group">
+                <label>Parking Space Photo</label>
+                <input type="file" accept="image/*" onChange={(e) => setProviderFormData({ ...providerFormData, spacePhoto: e.target.files[0] })} />
+                {providerFormData.spacePhoto && <p style={{color:'#4ade80',fontSize:'13px',marginTop:'4px'}}>Selected: {providerFormData.spacePhoto.name}</p>}
+              </div>
+
             </div>
 
             <div className="form-actions">

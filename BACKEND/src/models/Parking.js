@@ -29,6 +29,8 @@ const parkingSchema = new mongoose.Schema({
   parkingName: String,
   totalSpaces: { type: Number, default: 1 },
   description: String,
+  providerPhotoUrl: { type: String, default: '' },
+  spacePhotoUrl: { type: String, default: '' },
   isVerified: { type: Boolean, default: false }
 });
 

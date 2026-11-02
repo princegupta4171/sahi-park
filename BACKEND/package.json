@@ -11,8 +11,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@sentry/node": "^11.9.0",
+    "@sentry/node": "^10.78.0",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.11.0",
     "cors": "^2.8.6",
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
@@ -21,6 +22,8 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.2",
     "morgan": "^1.12.1",
+    "multer": "^2.5.0",
+    "multer-storage-cloudinary": "^2.2.1",
     "nodemailer": "^10.0.10",
     "resend": "^6.37.0"
   }

@@ -1,8 +1,8 @@
 const express = require('express');
 const Parking = require('../models/Parking');
 const { verifyToken } = require('../middleware/auth');
-const { sendEmailOTP } = require('../config/otp');
 const nodemailer = require('nodemailer');
+const { upload, uploadToCloudinary } = require('../config/cloudinary');
 const router = express.Router();
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -62,23 +62,53 @@ async function provideHandler(req, res) {
     if (!latitude || !longitude) return res.json({ success: false, message: 'Location is required. Please select location on map.' });
     if (!providerId) return res.json({ success: false, message: 'Provider not authenticated' });
     if (!parkingName) return res.json({ success: false, message: 'Parking name is required' });
+
+    // Upload images to Cloudinary if provided
+    let providerPhotoUrl = '';
+    let spacePhotoUrl = '';
+    if (req.files) {
+      if (req.files.providerPhoto) {
+        providerPhotoUrl = await uploadToCloudinary(req.files.providerPhoto[0].buffer, 'sahi-park/providers');
+      }
+      if (req.files.spacePhoto) {
+        spacePhotoUrl = await uploadToCloudinary(req.files.spacePhoto[0].buffer, 'sahi-park/spaces');
+      }
+    }
+
     const count = await Parking.countDocuments();
     const newSpace = new Parking({
       spaceNumber: count + 1, providerId, providerName, latitude, longitude,
       location: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] },
       parkingArea, mobile, email, address,
       pricePerHour: parseFloat(pricePerHour) || 50,
-      parkingName, totalSpaces: parseInt(totalSpaces) || 1, description, isAvailable: true
+      parkingName, totalSpaces: parseInt(totalSpaces) || 1, description,
+      isAvailable: true, providerPhotoUrl, spacePhotoUrl
     });
     await newSpace.save();
-    // WhatsApp alert to admin (click-to-chat link logged — frontend will show it)
-    const waMsg = encodeURIComponent(`🅿️ *Sahi Park - New Space Request*\n\nProvider: ${providerName}\nParking: ${parkingName}\nAddress: ${address}\nPrice: ₹${pricePerHour}/hr\nMobile: ${mobile}\n\nLogin to Admin Panel to verify this space.`);
-    const waLink = `https://wa.me/916394012121?text=${waMsg}`;
-    // Notify provider
+
+    // WhatsApp message to admin with all details + photo links
+    const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    let waText = `🅿️ *SAHI PARK - New Space Request*\n\n`;
+    waText += `👤 *Provider:* ${providerName}\n`;
+    waText += `🏢 *Parking Name:* ${parkingName}\n`;
+    waText += `📍 *Address:* ${address}\n`;
+    waText += `📞 *Mobile:* ${mobile}\n`;
+    waText += `📧 *Email:* ${email || 'N/A'}\n`;
+    waText += `💰 *Price:* ₹${pricePerHour}/hr\n`;
+    waText += `🚗 *Total Spaces:* ${totalSpaces || 1}\n`;
+    waText += `📝 *Description:* ${description || 'N/A'}\n`;
+    waText += `🗺️ *Location:* ${mapsLink}\n`;
+    if (providerPhotoUrl) waText += `\n👤 *Provider Photo:* ${providerPhotoUrl}\n`;
+    if (spacePhotoUrl) waText += `📸 *Space Photo:* ${spacePhotoUrl}\n`;
+    waText += `\n✅ Login to Admin Panel to verify this space.`;
+
+    const waLink = `https://wa.me/916394012121?text=${encodeURIComponent(waText)}`;
+
+    // Email to provider
     if (email) {
       sendNotification(email, '⏳ Your Parking Space is Under Review',
         `<div style="font-family:Arial,sans-serif;padding:20px;background:#0a0a1a;color:white;border-radius:12px;">
-          <h2>🅿️ Sahi Park — Space Listed!</h2>
+          <h2>🅿️ Sahi Park — Space Submitted!</h2>
           <p>Hi <strong>${providerName}</strong>,</p>
           <p>Your parking space <strong>${parkingName}</strong> has been submitted for review.</p>
           <p><strong>Address:</strong> ${address}</p>
@@ -88,13 +118,13 @@ async function provideHandler(req, res) {
       );
     }
     res.json({ success: true, message: 'Parking space submitted for review', waLink });
-  } catch {
+  } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to add parking space' });
   }
 }
 
-router.post('/api/v1/provide', provideHandler);
-router.post('/provide', provideHandler);
+router.post('/api/v1/provide', upload.fields([{ name: 'providerPhoto', maxCount: 1 }, { name: 'spacePhoto', maxCount: 1 }]), provideHandler);
+router.post('/provide', upload.fields([{ name: 'providerPhoto', maxCount: 1 }, { name: 'spacePhoto', maxCount: 1 }]), provideHandler);
 
 // ── Book space ─────────────────────────────────────────────────────────────────
 async function bookHandler(req, res) {

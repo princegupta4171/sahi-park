@@ -318,12 +318,10 @@ function App() {
       setOtpLoading(false);
       setOtpStep(true);
       setOtpSent(true);
-      if (data.debugOtp) {
-        alert(`📩 OTP: ${data.debugOtp}\n\n(Tip: Or use Master Test OTP: 123456)`);
-      } else if (data.success) {
-        alert('📩 OTP sent to your email inbox! (Or use Master Test OTP: 123456)');
+      if (data.success) {
+        alert(`📩 OTP sent to your email inbox!`);
       } else {
-        alert(`📩 ${data.message || 'Proceeding to OTP step'}\n\nUse Master Test OTP: 123456 to verify!`);
+          alert(`📩 ${data.message || 'Proceeding to OTP step'}`);
       }
     } catch (err) {
       console.warn('Backend fetch failed or timed out:', err);
